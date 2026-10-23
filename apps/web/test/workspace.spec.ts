@@ -91,7 +91,7 @@ test('public sample performs no API or provider requests and has no asset errors
   expect(unexpected).toEqual([]); expect(failed).toEqual([]);
 });
 
-test('custom sample, long content, manual draft and reset remain honest and responsive', async ({ page }) => {
+test('custom sample, long content, manual draft and reset remain honest and responsive', async ({ page, context }) => {
   const subject = `Integration-${'unbrokensubject'.repeat(15)}`;
   await page.getByRole('button', { name: 'Add sample email' }).click();
   await page.getByLabel('Customer name').fill('Alex Fictional');
@@ -107,7 +107,27 @@ test('custom sample, long content, manual draft and reset remain honest and resp
   expect(await page.evaluate(() => (window as unknown as { untrusted?: boolean }).untrusted)).toBeUndefined();
   await page.getByRole('button', { name: 'Revise draft' }).click();
   await page.getByRole('textbox', { name: 'Reply draft' }).fill('Manual sample follow-up for a human specialist.');
+  // Hold a real cross-tab lock so click completion cannot be mistaken for a durable save.
+  const blocker = await context.newPage(); await blocker.goto('./');
+  await blocker.evaluate(() => new Promise<void>(acquired => {
+    void navigator.locks.request('support-flow.demo.v1', () => new Promise<void>(release => {
+      Object.assign(window, { releaseSaveLock: release }); acquired();
+    }));
+  }));
   await page.getByRole('button', { name: 'Save changes' }).click();
+  await expect(page.getByRole('button', { name: /^Saving/ })).toBeDisabled();
+  const readSavedDraft = () => page.evaluate(subject => {
+    const state = JSON.parse(localStorage.getItem('support-flow.demo.v1')!) as { tickets: { subject: string; draft: string; draftVersion: number }[] };
+    const ticket = state.tickets.find(ticket => ticket.subject === subject)!;
+    return { draft: ticket.draft, draftVersion: ticket.draftVersion };
+  }, subject);
+  expect(await readSavedDraft()).toEqual({ draft: '', draftVersion: 0 });
+  await blocker.evaluate(() => (window as unknown as { releaseSaveLock: () => void }).releaseSaveLock());
+  await expect(page.getByRole('status')).toContainText('Draft saved.');
+  await expect(page.locator('.draft-content')).toContainText('Manual sample follow-up');
+  await expect(page.getByText('VERSION 1', { exact: true })).toBeVisible();
+  await expect.poll(readSavedDraft).toEqual({ draft: 'Manual sample follow-up for a human specialist.', draftVersion: 1 });
+  await blocker.close();
   await page.reload();
   await expect(page.locator('.draft-content')).toContainText('Manual sample follow-up');
   await expect(page.getByRole('button', { name: 'Approve draft' })).toBeDisabled();

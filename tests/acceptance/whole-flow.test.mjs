@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict';
+import { assertApprovedMailText } from '../mail-content.mjs';
 import { before, test } from 'node:test';
 import { execFile } from 'node:child_process';
 import { promisify } from 'node:util';
@@ -108,7 +109,8 @@ test('N01/A04/A05: real workflow creates a grounded draft and dispatches exactly
   const messages = await eventually(() => messagesTo(input.customerEmail), (items) => items.length === 1, { description: 'one Mailpit message' });
   const message = await request(config.mailpit, `/api/v1/message/${messages[0].ID}`);
   assert.equal(message.status, 200);
-  assert.ok(message.body.Text.includes(revisedText), 'delivery must use the approved revision snapshot');
+  const mailEvidence = assertApprovedMailText(message.body.Text, revisedText);
+  console.log('MAIL_CONTENT_TRACE', JSON.stringify({ ticketId: sent.id, ...mailEvidence }));
   assert.ok(sent.events.length >= 4, 'persisted audit history must show the review and delivery transitions');
   assert.ok((await workflow('dispatch')).ok);
   assert.equal((await messagesTo(input.customerEmail)).length, 1, 'repeated dispatch cannot resend a completed outbox item');

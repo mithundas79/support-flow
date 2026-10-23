@@ -1,4 +1,5 @@
 import { expect, test } from '@playwright/test';
+import { assertApprovedMailText } from '../mail-content.mjs';
 
 test('W05: authenticated UI reviews a real n8n-created fixture draft', async ({ page, request }) => {
   test.skip(!process.env.PLAYWRIGHT_LIVE_URL, 'Set PLAYWRIGHT_LIVE_URL to a live-mode web server connected to the disposable fixture stack.');
@@ -65,7 +66,8 @@ test('W05: authenticated UI reviews a real n8n-created fixture draft', async ({ 
   const messages = (await (await request.get(`${mailpitURL}/api/v1/messages`)).json()).messages as Array<{ ID: string; To: Array<{ Address: string }> }>;
   const delivered = messages.find(message => message.To.some(to => to.Address === recipient))!;
   const content = await (await request.get(`${mailpitURL}/api/v1/message/${delivered.ID}`)).json();
-  expect(content.Text).toContain(text);
+  const mailEvidence = assertApprovedMailText(content.Text, text);
+  console.log('BROWSER_MAIL_CONTENT_TRACE', JSON.stringify({ ticketId: ticket.id, ...mailEvidence }));
   await page.reload();
   await expect(page.getByText(text, { exact: true })).toBeVisible();
   const storedValues = await page.evaluate(() => [Object.values(localStorage), Object.values(sessionStorage)].flat());

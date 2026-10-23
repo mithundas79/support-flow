@@ -4,6 +4,7 @@ import { readFile } from 'node:fs/promises';
 import { classification, embedding, startFixture } from '../fixture-provider/server.mjs';
 import net from 'node:net';
 import { once } from 'node:events';
+import { assertApprovedMailText } from '../../tests/mail-content.mjs';
 const tickets=JSON.parse(await readFile(new URL('../../fixtures/tickets/labeled.json',import.meta.url)));
 const articles=JSON.parse(await readFile(new URL('../../fixtures/knowledge-base/articles.json',import.meta.url)));
 
@@ -72,4 +73,19 @@ test('fixture SMTP fault hides one accepted DATA acknowledgement and exposes rec
   assert.equal(await send(),true);assert.equal(stored,2);
   const stats=await (await fetch(base+'/__control/stats')).json();assert.equal(stats.counts.smtp,2);assert.equal(stats.counts.smtpAmbiguous,1);
  }finally{await fixture.close();await new Promise(r=>sink.close(r));}
+});
+test('approved mail comparison accepts only CRLF normalization and the demonstrated terminal newline',()=>{
+ const approved='  Hello Avery,\n\nKeep  two spaces.\n\nApproved revision.  ';
+ const delivered=approved.replace(/\n/g,'\r\n')+'\r\n';
+ const evidence=assertApprovedMailText(delivered,approved);
+ assert.equal(evidence.terminalNewline,true);assert.equal(evidence.actualCrlfPairs,5);
+ assert.equal(assertApprovedMailText(approved,approved).terminalNewline,false);
+ assert.equal(assertApprovedMailText(approved+'\r\n',approved+'\n').terminalNewline,false);
+});
+test('approved mail comparison rejects changed content, whitespace, paragraphs and bare CRs',()=>{
+ const approved='  Hello Avery,\n\nKeep  two spaces.\n\nApproved revision.  ';
+ for(const changed of [approved.replace('revision','replacement'),approved.replace('  two',' two'),approved.trim(),approved.replace('\n\n','\n'),approved+'\n\n',approved+'\nUnapproved appendage',approved.replace('Hello','Hello\r')]){
+  assert.throws(()=>assertApprovedMailText(changed,approved),/Full approved body mismatch/);
+ }
+ assert.throws(()=>assertApprovedMailText(undefined,approved),/decoded text body/);
 });
