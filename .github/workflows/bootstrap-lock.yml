@@ -26,6 +26,19 @@ jobs:
         run: |
           node --input-type=module -e "import { rmSync } from 'node:fs'; rmSync('package-lock.json', { force: true });"
           npm install --package-lock-only --ignore-scripts --audit=false --fund=false
+      - name: Show only public dependency resolver diagnostics on failure
+        if: failure()
+        run: |
+          node --input-type=module <<'NODE'
+          import { readdirSync, readFileSync, statSync } from 'node:fs';
+          import { homedir } from 'node:os';
+          import { join } from 'node:path';
+          const directory = join(homedir(), '.npm', '_logs');
+          const files = readdirSync(directory).filter(name => name.endsWith('-debug-0.log'))
+            .map(name => join(directory, name)).sort((a, b) => statSync(b).mtimeMs - statSync(a).mtimeMs);
+          if (files[0]) console.log(readFileSync(files[0], 'utf8').split('\n')
+            .filter(line => /verbose stack|silly placeDep|error /.test(line)).slice(-60).join('\n'));
+          NODE
       - name: Preserve generated lock for an explicit reviewed commit
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
