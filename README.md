@@ -2,15 +2,17 @@
 
 A human-reviewed support inbox for a fictional SaaS company. n8n classifies tickets, retrieves PostgreSQL/pgvector knowledge, and prepares an OpenAI draft. A React workspace lets a reviewer inspect sources, revise the reply, and approve a specific version before an immutable outbox can dispatch it.
 
-**Two ways to explore:** [Try the demo](#try-the-demo) uses prepared fictional conversations in your browser. [Run the boilerplate](#run-the-boilerplate) starts the actual API, database, n8n workflows and local email sink.
+**Two ways to explore:** [Try the live demo](https://mithundas79.github.io/support-flow/) uses prepared fictional conversations in your browser. [Run the boilerplate](#run-the-boilerplate) starts the actual API, database, n8n workflows and local email sink.
 
-**Verification status:** implementation and independent verification are in progress. See [the validation record](docs/validation.md) for observed results and blockers. No live OpenAI, Gmail or Slack execution is claimed.
+**Verified:** the published files match the exact CI artifact, and all 14 public desktop/mobile browser checks pass. The selected main revision also passes Node 22 installation, build/typecheck and the real PostgreSQL/n8n/API/Mailpit fixture stack. See [the exact results and provenance](docs/validation.md). No live OpenAI, Gmail or Slack execution is claimed.
 
 ![Actual local review workspace showing a fictional ticket, source excerpt and prepared draft](docs/screenshots/review-workspace.png)
 
 ## Try the demo
 
-Public GitHub Pages publication has not yet been verified. Run the same sample locally with Node.js **22 LTS** and npm **11.21.1**:
+Open the [interactive demo](https://mithundas79.github.io/support-flow/) with no setup. The messages, sources and drafts are fictional; decisions stay in your browser and no email is sent.
+
+To preview the same sample locally, use Node.js **22 LTS** and npm **11.21.1**:
 
 ```sh
 git clone https://github.com/mithundas79/support-flow.git
@@ -149,7 +151,7 @@ npm run test:e2e
 node automation/scripts/run-integration.mjs
 ```
 
-The last command requires free local ports 3000, 4010, 5432, 5678 and 8025. It runs a disposable real Docker stack with controlled providers, imports the actual workflows, exercises database/API/n8n integration and the authenticated browser, then cleans up its isolated resources. It must not use configured live provider credentials. Integration checks cover duplicate intake races, version conflicts, auth/CSRF, malformed provider responses, refusal, rate limits, timeouts, citation rejection, durable recovery and ambiguous SMTP acknowledgment. See [independent acceptance instructions](tests/acceptance/README.md) and [the acceptance matrix](docs/acceptance-matrix.md).
+The last command requires free local ports 3000, 4010, 5432, 5678 and 8025. It runs a disposable real Docker stack with controlled providers, imports the actual workflows, exercises database/API/n8n integration and the authenticated browser, then cleans up its isolated resources. The green main CI run exercised this path, including complete approved-body comparison after SMTP newline framing, API restart, and accepted-but-unacknowledged delivery. It uses fake credentials and local provider fixtures. See [independent acceptance instructions](tests/acceptance/README.md), [the acceptance matrix](docs/acceptance-matrix.md) and [recorded CI results](docs/validation.md).
 
 The [fictional corpus](fixtures/tickets/labeled.json) contains 30 tickets with authored category, priority and disposition expectations; the [fictional KB](fixtures/knowledge-base/articles.json) contains ten articles. Controlled fixture label agreement is a regression check, **not measured live-model accuracy**. No representative evaluation, production load benchmark, live provider cost, Gmail delivery or Slack verification is claimed. Exact observed results belong in [validation.md](docs/validation.md).
 

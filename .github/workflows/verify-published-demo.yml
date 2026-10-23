@@ -1,0 +1,128 @@
+name: Verify published demo bytes and browser behavior
+
+# Add this workflow only with the real, deployed artifact manifest. A missing or
+# invalid manifest is a failure; this job never substitutes a local build.
+on:
+  push:
+    branches: [main]
+    paths:
+      - docs/demo-release.json
+      - scripts/verify-published-demo*.mjs
+      - tests/e2e/independent-demo.spec.ts
+      - playwright.config.ts
+      - .github/workflows/verify-published-demo.yml
+      - package.json
+      - package-lock.json
+  pull_request:
+    branches: [main]
+    paths:
+      - docs/demo-release.json
+      - scripts/verify-published-demo*.mjs
+      - tests/e2e/independent-demo.spec.ts
+      - playwright.config.ts
+      - .github/workflows/verify-published-demo.yml
+      - package.json
+      - package-lock.json
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: published-demo-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  published-demo:
+    name: Published artifact hashes and 14 browser checks
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    env:
+      PLAYWRIGHT_BASE_URL: https://mithundas79.github.io/support-flow/
+      PLAYWRIGHT_EXTERNAL_SERVER: '1'
+      PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH: ''
+      PLAYWRIGHT_JSON_OUTPUT_NAME: .runtime/published/browser-report.json
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: '22'
+          cache: npm
+      - name: Validate provenance schema and the intended public target
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p .runtime/published
+          node --input-type=module <<'NODE'
+          import assert from 'node:assert/strict';
+          import { readFileSync } from 'node:fs';
+          import { validateManifest } from './scripts/verify-published-demo.mjs';
+          const manifest = validateManifest(JSON.parse(readFileSync('docs/demo-release.json', 'utf8')));
+          assert.equal(manifest.baseUrl, 'https://mithundas79.github.io/support-flow/', 'Unexpected published target');
+          assert.equal(manifest.baseUrl, process.env.PLAYWRIGHT_BASE_URL, 'Hash and browser targets must agree');
+          console.log(`Validated ${manifest.files.length} files from source ${manifest.sourceCommit}, run ${manifest.sourceRunId}, artifact ${manifest.sourceArtifactId}.`);
+          NODE
+      - name: Use the declared npm installer
+        run: npm install --global npm@11.21.1 --ignore-scripts --audit=false --fund=false
+      - name: Install exact locked dependencies
+        run: npm ci
+      - name: Install Chromium using the locked Playwright version
+        run: node node_modules/@playwright/test/cli.js install --with-deps chromium
+      - name: Match published bytes to the verified artifact manifest
+        shell: bash
+        run: |
+          set -euo pipefail
+          node scripts/verify-published-demo.mjs docs/demo-release.json | tee .runtime/published/hash-report.json
+      - name: Run the published desktop and mobile browser checks
+        id: browser
+        shell: bash
+        run: |
+          set -euo pipefail
+          node node_modules/@playwright/test/cli.js test tests/e2e/independent-demo.spec.ts \
+            --config=playwright.config.ts --project=desktop --project=mobile \
+            --reporter=list,json --retries=0 --forbid-only --fail-on-flaky-tests --global-timeout=240000
+      - name: Require exactly 14 passing checks with no skips
+        if: always()
+        shell: bash
+        run: |
+          set -euo pipefail
+          node --input-type=module <<'NODE'
+          import assert from 'node:assert/strict';
+          import { readFileSync } from 'node:fs';
+          const report = JSON.parse(readFileSync(process.env.PLAYWRIGHT_JSON_OUTPUT_NAME, 'utf8'));
+          assert.equal(report.stats.expected, 14, 'Exactly 14 checks must pass');
+          for (const key of ['unexpected', 'skipped', 'flaky']) assert.equal(report.stats[key], 0, `${key} must be zero`);
+          assert.deepEqual(report.errors ?? [], [], 'The browser runner must have no global errors');
+          const cases = [];
+          function visit(suite) {
+            for (const spec of suite.specs ?? []) cases.push(...spec.tests);
+            for (const child of suite.suites ?? []) visit(child);
+          }
+          for (const suite of report.suites) visit(suite);
+          assert.equal(cases.length, 14, 'Unexpected number of project cases');
+          const counts = { desktop: 0, mobile: 0 };
+          for (const item of cases) {
+            assert.ok(Object.hasOwn(counts, item.projectName), 'Unexpected browser project');
+            counts[item.projectName]++;
+            assert.equal(item.expectedStatus, 'passed', 'Expected-failure annotations cannot satisfy this gate');
+            assert.equal(item.status, 'expected');
+            assert.equal(item.results.length, 1, 'Each check must pass on its single attempt');
+            assert.equal(item.results[0].status, 'passed');
+          }
+          assert.deepEqual(counts, { desktop: 7, mobile: 7 });
+          console.log('Verified 14 passing checks: 7 desktop, 7 mobile; zero failures, skips or retries.');
+          NODE
+      - name: Preserve published hash and browser evidence
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: published-demo-evidence-${{ github.run_id }}-${{ github.run_attempt }}
+          path: |
+            docs/demo-release.json
+            .runtime/published
+            test-results/independent
+          if-no-files-found: error
+          include-hidden-files: true
+          retention-days: 7

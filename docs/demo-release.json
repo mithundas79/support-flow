@@ -1,0 +1,36 @@
+{
+  "baseUrl": "https://mithundas79.github.io/support-flow/",
+  "sourceRepository": "mithundas79/support-flow",
+  "sourceCommit": "0c4fdd19af853f67176f3beceaf1b79b71dc9275",
+  "sourceRunId": "39957927244",
+  "sourceRunAttempt": 1,
+  "sourceRunUrl": "https://github.com/mithundas79/support-flow/actions/runs/39957927244",
+  "sourceWorkflow": ".github/workflows/verify-and-pages.yml",
+  "sourceArtifactId": "12503712622",
+  "sourceArtifactName": "verified-sample-demo-0c4fdd19af853f67176f3beceaf1b79b71dc9275",
+  "sourceArtifactDigest": "sha256:6ae705956c5f10caf0e2d68823444e1bd85a92fd4c4d30ea7ea5c9941ecfa76c",
+  "exportWorkflowCommit": "8279b5dce3600741df524acaf70fa6f95c19a72a",
+  "exportedAt": "2026-10-23T13:07:16.880Z",
+  "files": [
+    {
+      "path": "assets/index-CFnq_utw.js",
+      "sha256": "2a97dd3a7c288dabf963fcc642e863bd98819a715127c17467936de6a18156b9",
+      "bytes": 242454
+    },
+    {
+      "path": "assets/index-DYLO7lVG.css",
+      "sha256": "d6c69041958f0615c90618563fa342a3f35717629e54badef2bb366a708e131b",
+      "bytes": 48878
+    },
+    {
+      "path": "favicon.svg",
+      "sha256": "5a66d849a1193530187cb8a435c3fa1fcbc56cf155d5f1cef0b12e63170a1e42",
+      "bytes": 208
+    },
+    {
+      "path": "index.html",
+      "sha256": "284463fd628d118b6632bf09c8df5813f6d45dab74eb256d295422a817654e96",
+      "bytes": 698
+    }
+  ]
+}

@@ -1,37 +1,44 @@
 # Independent acceptance matrix
 
-These checks are owned separately from the application and workflow implementations. A checked-in test is a plan until an execution is recorded in [validation.md](validation.md). Controlled provider fixtures replace only OpenAI and SMTP delivery behavior; integration evidence requires the real API, PostgreSQL and n8n workflow engine.
+This matrix records observed execution, not merely authored tests. **Q** is the [quality job][quality-ci] and **I** is the [real-stack integration job][integration-ci] of green main-push run [39957927244][source-ci], source `0c4fdd19af853f67176f3beceaf1b79b71dc9275`. **P** is the [actual published verification][public-ci]. Exact artifact/export/deployment receipts are recorded in [validation.md](validation.md).
 
-| ID | Criterion | Independent evidence |
+Controlled fixtures replace OpenAI responses and selected SMTP behavior. The API, PostgreSQL and n8n engine run as real services. The authenticated browser uses that actual stack.
+
+| ID | Criterion | Observed evidence |
 | --- | --- | --- |
-| F01 | Fresh install, Node 22, pinned dependencies, shared contracts | Clean checkout install/build/typecheck/unit output; actual versions |
-| F02 | Pinned services, readiness, persistent storage | Compose configuration and readiness probes |
-| F03 | No browser secrets, fake example configuration | Bundle scan plus browser request allowlist |
-| A01 | Reviewer and workflow auth are independent | Missing/invalid credentials, public cookie cannot call internal routes |
-| A02 | CSRF and origin checks protect mutations | Valid session with missing CSRF or foreign Origin is rejected |
-| A03 | Duplicate concurrent intake creates one ticket | Concurrent real n8n webhook requests; one persisted external ID |
-| A04 | Optimistic versions bind review and dispatch | Stale edit/approval, repeated approval, rejected approval |
-| A05 | Dispatch contains the approved immutable revision | Edit, approve, inspect received Mailpit message and audit timeline |
-| A06 | Pending jobs survive restart | Stop/start API with pending job; n8n consumes persisted job afterward |
-| A07 | Ambiguous delivery never blindly retries | SMTP proxy accepts once and hides acknowledgment; recover twice; one message |
-| N01 | n8n executes retrieval and grounded drafting | Actual webhook, persisted sources/draft and fixture request counts |
-| N02 | Unknown/no-source requests require attention | No-source fixture results in blocked approval |
-| N03 | Sensitive requests require escalation | Fictional sensitive ticket produces attention disposition |
-| N04 | Model output cannot invent citations | Unknown citation is rejected before draft approval |
-| N05 | Refusal/malformed/error/timeout behavior is bounded | Controlled Responses outcomes, persisted failure and call ceilings |
-| N06 | Provider credentials are optional and isolated | Fixture-only run uses no real OpenAI/Gmail/Slack connection |
-| W01 | Sample is visibly synthetic and cannot send | Prominent disclosure; request capture; approve/reject/reset/reload |
-| W02 | Review workspace supports edits and decisions | Desktop browser edit/approve/reject and state persistence |
-| W03 | Responsive keyboard access works | Mobile viewport, labels, focus traversal and no horizontal overflow |
-| W04 | Corrupt sample storage recovers predictably | Invalid persisted state then reload/reset |
-| W05 | Authenticated UI reaches the actual backend | Live login, fixture intake, UI revision/approval, Mailpit delivery |
-| R01 | Pages base path resolves assets and routes | Published /support-flow/ browser run with no 404/JS errors |
-| R02 | Release links identify the tested revision | Deployed SHA, Actions URL and deployment URL recorded together |
-| D01 | Demo visitors and installers have clear paths | README has separate try/run paths, actual screenshot and supported commands |
-| D02 | Evidence is honest and reproducible | Exact commands, counts, fixture/live distinction and blockers |
+| F01 | Clean install, supported runtime, pinned dependencies and contracts | Q: Node 22/npm 11.21.1 `npm ci`, build/typecheck and 22 workspace tests passed |
+| F02 | Pinned services, readiness and persistent state | I: actual Compose stack, PostgreSQL/n8n readiness and restart checks passed |
+| F03 | Fake configuration and browser/provider isolation | Q: bundle scan and sample browser request/error checks passed |
+| A01 | Reviewer and workflow authentication are independent | I: missing/invalid credentials, malformed requests and cookie/internal separation passed |
+| A02 | CSRF and exact-origin checks protect mutations | I: valid sessions with missing CSRF or foreign Origin were rejected |
+| A03 | Concurrent duplicate intake creates one ticket | I: simultaneous actual n8n intake requests persisted one external ID |
+| A04 | Versions bind edits, decisions and outbox creation | I: stale/rejected/repeated and simultaneous approval checks passed |
+| A05 | Delivery contains the immutable approved revision | I: complete Mailpit body matched the approved revision after SMTP newline framing |
+| A06 | Pending jobs survive API restart | I: disposable API restart retained the job; actual n8n processing completed |
+| A07 | Ambiguous delivery never blindly resends | I: Mailpit accepted once, acknowledgment was hidden, repeated recovery/dispatch kept one message |
+| N01 | n8n executes retrieval and grounded drafting | I: actual imported/published workflows, fixture request counts and persisted sources/drafts passed |
+| N02 | Missing sources block routine approval | I: no-source case required attention; approval failed explicitly |
+| N03 | Sensitive requests require specialist handling | I: sensitive cases and the 30-ticket category/priority/stored-disposition corpus passed |
+| N04 | Invented citations cannot publish a routine draft | I: unsupported source IDs were rejected |
+| N05 | Refusal, malformed data, errors and timeouts stay bounded | I: provider scenarios, persisted outcomes and request ceilings passed |
+| N06 | External provider credentials are optional and isolated | I: fixture-only provider and Mailpit configuration ran without real OpenAI/Gmail/Slack |
+| W01 | Sample is visibly synthetic and cannot send | Q: disclosures, actions, reload/reset and network observations passed |
+| W02 | Review workspace supports revisions and decisions | Q: 18 app and 14 independent desktop/mobile checks passed |
+| W03 | Keyboard, focus and responsive access work | Q: dialog/key flows, visible focus and viewport-fit checks passed |
+| W04 | Invalid sample storage recovers safely | Q: corrupted/blocked storage and reset cases passed |
+| W05 | Authenticated UI reaches the actual backend | I: two browser cases completed real fixture intake, versioned approval and Mailpit delivery |
+| R01 | Published Pages base path and assets work | P: four exact file hashes/byte counts and 14 desktop/mobile cases passed with no failed requests or JavaScript errors |
+| R02 | Release identifies tested source and deployed bytes | Main artifact `12503712622`, orphan export, profile commit, Pages deployment and P are linked by the manifest and recorded release receipts |
+| D01 | Demo visitors and installers have clear paths | README links the verified live demo and separate boilerplate setup, with an actual screenshot and supported npm 11.21.1 commands |
+| D02 | Evidence is reproducible and accurately scoped | Q/I/P counts, commands, workflow traces and exact source/artifact/deployment receipts recorded; live-provider limits explicit |
 
 ## Evaluation limits
 
-The fictional ticket corpus checks defined behavior, not representative production accuracy. A passing fixture run proves handling of those controlled responses and the exercised workflow graph. It does not establish OpenAI quality, Gmail delivery, Slack operation, real-world retrieval accuracy, production scale, or exactly-once email delivery. Ambiguous SMTP outcomes require a reviewer to reconcile the delivery sink before taking further action.
+The 30-ticket fictional corpus checks authored behavior, including the database distinction between clarification and escalation. It is not a representative production dataset or a live-model accuracy measurement. Passing controlled responses establish the exercised workflow behavior, not real OpenAI quality, Gmail/Slack operation, production scale or exactly-once transport.
 
-Run data must never contain customer messages, account secrets, personal operational telemetry, or unredacted credentials. Screenshots use fictional Northstar records only.
+Ambiguous SMTP outcomes remain blocked for human reconciliation. Evidence and screenshots contain fictional Northstar records only; no customer data, account secrets or private operational telemetry belongs in this repository.
+
+[source-ci]: https://github.com/mithundas79/support-flow/actions/runs/39957927244
+[quality-ci]: https://github.com/mithundas79/support-flow/actions/runs/39957927244/job/120428315357
+[integration-ci]: https://github.com/mithundas79/support-flow/actions/runs/39957927244/job/120428314796
+[public-ci]: https://github.com/mithundas79/support-flow/actions/runs/39959667796/job/120434182139
