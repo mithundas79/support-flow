@@ -29,7 +29,8 @@
     "@types/node": "20.19.43",
     "tsx": "4.23.13",
     "typescript": "5.9.3",
-    "vitest": "2.1.9",
+    "vite": "6.4.4",
+    "vitest": "4.1.12",
     "@playwright/test": "1.56.1"
   }
 }
