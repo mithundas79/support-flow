@@ -28,6 +28,16 @@ jobs:
           node-version: '22'
           cache: npm
       - run: npm ci
+      - name: Record full dependency advisory evidence
+        shell: bash
+        run: |
+          mkdir -p .runtime/evidence
+          set +e
+          npm audit --json > .runtime/evidence/npm-audit.json
+          audit_status=$?
+          set -e
+          cat .runtime/evidence/npm-audit.json
+          echo "Full advisory report exit status: $audit_status; production gate follows."
       - name: Check production dependency advisories
         run: npm audit --omit=dev --audit-level=high
       - run: npm run build
@@ -45,11 +55,13 @@ jobs:
         with:
           name: browser-evidence-${{ github.sha }}
           path: |
+            .runtime/evidence/npm-audit.json
             playwright-report
             test-results
             apps/web/playwright-report
             apps/web/test-results
           if-no-files-found: ignore
+          include-hidden-files: true
           retention-days: 7
       - name: Preserve the exact browser-tested sample build
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
@@ -91,6 +103,7 @@ jobs:
             test-results
             playwright-report
           if-no-files-found: ignore
+          include-hidden-files: true
           retention-days: 7
 
   verified-artifact:
