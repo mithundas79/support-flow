@@ -1,0 +1,160 @@
+name: Export one verified sample artifact
+
+# Temporary operator workflow, installed only on ops/export-verified-demo.
+# A real .github/verified-demo-export.json must contain sourceCommit,
+# sourceRunId and sourceArtifactId. There is no default or placeholder request.
+# It creates an orphan artifact branch once and never updates an existing ref.
+on:
+  push:
+    branches: [ops/export-verified-demo]
+    paths:
+      - .github/workflows/export-verified-demo.yml
+      - .github/verified-demo-export.json
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: verified-demo-export-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  export:
+    if: github.repository == 'mithundas79/support-flow' && github.ref == 'refs/heads/ops/export-verified-demo'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    permissions:
+      contents: write
+      actions: read
+    steps:
+      - name: Validate, download and mirror only the verified artifact
+        uses: actions/github-script@f28e40c7f34bde8b3046d885e986cb6290c5673b # v7
+        with:
+          script: |
+            const assert = require('node:assert/strict');
+            const { createHash } = require('node:crypto');
+            const { execFileSync } = require('node:child_process');
+            const repo = context.repo;
+            const repository = `${repo.owner}/${repo.repo}`;
+            assert.equal(repository, 'mithundas79/support-flow');
+            assert.equal(context.ref, 'refs/heads/ops/export-verified-demo');
+            const requireCurrentRequest = async () => {
+              const ref = await github.rest.git.getRef({ ...repo, ref: 'heads/ops/export-verified-demo' });
+              assert.equal(ref.data.object.sha, context.sha, 'Export request changed; refusing stale work');
+            };
+            await requireCurrentRequest();
+            const requestFile = await github.rest.repos.getContent({ ...repo, path: '.github/verified-demo-export.json', ref: context.sha });
+            assert.equal(requestFile.data.type, 'file');
+            assert.equal(requestFile.data.encoding, 'base64');
+            assert.ok(requestFile.data.size <= 8192, 'Request is too large');
+            const request = JSON.parse(Buffer.from(requestFile.data.content, 'base64').toString('utf8'));
+            assert.deepEqual(Object.keys(request).sort(), ['sourceArtifactId', 'sourceCommit', 'sourceRunId']);
+            assert.match(request.sourceCommit, /^[0-9a-f]{40}$/);
+            const id = value => {
+              assert.match(String(value), /^[1-9][0-9]*$/);
+              assert.ok(Number.isSafeInteger(Number(value)), 'Unsafe numeric ID');
+              return Number(value);
+            };
+            const sourceRunId = id(request.sourceRunId);
+            const sourceArtifactId = id(request.sourceArtifactId);
+            const sourceCommit = request.sourceCommit;
+            const destination = `artifacts/verified-sample-demo-${sourceCommit}`;
+            try {
+              await github.rest.git.getRef({ ...repo, ref: 'heads/' + destination });
+              throw new Error('Destination exists; artifact branches are new-only');
+            } catch (error) {
+              if (error.status !== 404) throw error;
+            }
+            const run = (await github.rest.actions.getWorkflowRun({ ...repo, run_id: sourceRunId })).data;
+            assert.equal(run.repository.full_name, repository);
+            assert.equal(run.head_repository.full_name, repository);
+            assert.equal(run.path, '.github/workflows/verify-and-pages.yml');
+            assert.equal(run.name, 'Verify and publish sample demo');
+            assert.equal(run.event, 'push');
+            assert.equal(run.head_branch, 'main');
+            assert.equal(run.head_sha, sourceCommit);
+            assert.equal(run.status, 'completed');
+            assert.equal(run.conclusion, 'success');
+            const jobs = await github.paginate(github.rest.actions.listJobsForWorkflowRun, { ...repo, run_id: sourceRunId, filter: 'latest', per_page: 100 });
+            for (const name of ['Build, unit tests and browser review', 'PostgreSQL, n8n, API and Mailpit integration', 'Preserve sample after every verification gate']) {
+              const matches = jobs.filter(job => job.name === name);
+              assert.equal(matches.length, 1, 'Missing or ambiguous verification job: ' + name);
+              assert.equal(matches[0].status, 'completed');
+              assert.equal(matches[0].conclusion, 'success');
+            }
+            const artifact = (await github.rest.actions.getArtifact({ ...repo, artifact_id: sourceArtifactId })).data;
+            assert.equal(artifact.id, sourceArtifactId);
+            assert.equal(artifact.name, `verified-sample-demo-${sourceCommit}`);
+            assert.equal(artifact.expired, false);
+            assert.equal(artifact.workflow_run.id, sourceRunId);
+            assert.equal(artifact.workflow_run.head_sha, sourceCommit);
+            assert.equal(artifact.workflow_run.head_branch, 'main');
+            assert.equal(artifact.workflow_run.repository_id, run.repository.id);
+            assert.equal(artifact.workflow_run.head_repository_id, run.head_repository.id);
+            assert.match(artifact.digest, /^sha256:[0-9a-f]{64}$/);
+            assert.ok(artifact.size_in_bytes > 0 && artifact.size_in_bytes <= 25 * 1024 * 1024, 'Artifact archive exceeds limit');
+            const download = await github.rest.actions.downloadArtifact({ ...repo, artifact_id: sourceArtifactId, archive_format: 'zip' });
+            const data = download.data;
+            const zip = Buffer.isBuffer(data) ? data : data instanceof ArrayBuffer ? Buffer.from(data) : ArrayBuffer.isView(data) ? Buffer.from(data.buffer, data.byteOffset, data.byteLength) : null;
+            assert.ok(zip && zip.length <= 25 * 1024 * 1024, 'Unexpected or oversized artifact archive');
+            const archiveDigest = 'sha256:' + createHash('sha256').update(zip).digest('hex');
+            assert.equal(archiveDigest, artifact.digest, 'Downloaded archive digest differs from GitHub artifact metadata');
+            // Inspect in memory before any extraction. Only regular bytes are
+            // returned; no archive entry is written to the runner filesystem.
+            const files = JSON.parse(execFileSync('python3', ['-c', String.raw`
+            import base64, hashlib, io, json, re, stat, sys, zipfile
+            rows, seen, total = [], set(), 0
+            with zipfile.ZipFile(io.BytesIO(sys.stdin.buffer.read())) as archive:
+                entries = archive.infolist()
+                if len(entries) > 512: raise SystemExit('Too many ZIP entries')
+                for entry in entries:
+                    path = entry.filename.rstrip('/') if entry.is_dir() else entry.filename
+                    if entry.orig_filename != entry.filename or len(path) > 1024 or not re.fullmatch(r'[A-Za-z0-9._-][A-Za-z0-9._/-]*', path): raise SystemExit('Unsafe ZIP path')
+                    parts = path.split('/')
+                    if any(part in ('', '.', '..') for part in parts) or parts[0].lower() in ('.git', '.github', 'artifact-manifest.json'): raise SystemExit('Reserved or escaping ZIP path')
+                    if path in seen: raise SystemExit('Duplicate ZIP entry')
+                    seen.add(path)
+                    mode = stat.S_IFMT(entry.external_attr >> 16)
+                    if entry.flag_bits & 1 or entry.compress_type not in (zipfile.ZIP_STORED, zipfile.ZIP_DEFLATED): raise SystemExit('Unsupported ZIP entry')
+                    if entry.is_dir():
+                        if mode not in (0, stat.S_IFDIR) or entry.file_size: raise SystemExit('Invalid directory entry')
+                        continue
+                    if mode not in (0, stat.S_IFREG): raise SystemExit('Symlink or non-regular ZIP entry')
+                    if len(rows) >= 256 or entry.file_size > 5 * 1024 * 1024: raise SystemExit('Artifact file limit exceeded')
+                    total += entry.file_size
+                    if total > 50 * 1024 * 1024: raise SystemExit('Artifact total size limit exceeded')
+                    with archive.open(entry) as stream:
+                        body = stream.read(5 * 1024 * 1024 + 1)
+                    if len(body) != entry.file_size or len(body) > 5 * 1024 * 1024: raise SystemExit('ZIP size mismatch')
+                    rows.append(dict(path=path, sha256=hashlib.sha256(body).hexdigest(), bytes=len(body), content=base64.b64encode(body).decode('ascii')))
+            paths = {row['path'] for row in rows}
+            if 'index.html' not in paths or not any(path.endswith('.js') for path in paths) or not any(path.endswith('.css') for path in paths): raise SystemExit('Missing sample HTML/JS/CSS')
+            for path in paths:
+                if any('/'.join(path.split('/')[:index]) in paths for index in range(1, len(path.split('/')))): raise SystemExit('File/directory path conflict')
+            print(json.dumps(sorted(rows, key=lambda row: row['path'])))
+            `], { input: zip, maxBuffer: 80 * 1024 * 1024, timeout: 30_000 }).toString('utf8'));
+            const manifest = {
+              baseUrl: 'https://mithundas79.github.io/support-flow/', sourceRepository: repository,
+              sourceCommit, sourceRunId: String(sourceRunId), sourceRunAttempt: run.run_attempt,
+              sourceRunUrl: run.html_url, sourceWorkflow: run.path,
+              sourceArtifactId: String(sourceArtifactId), sourceArtifactName: artifact.name,
+              sourceArtifactDigest: archiveDigest, exportWorkflowCommit: context.sha,
+              exportedAt: new Date().toISOString(),
+              files: files.map(({ path, sha256, bytes }) => ({ path, sha256, bytes })),
+            };
+            const tree = [];
+            for (const file of files) {
+              const blob = await github.rest.git.createBlob({ ...repo, content: file.content, encoding: 'base64' });
+              tree.push({ path: file.path, mode: '100644', type: 'blob', sha: blob.data.sha });
+            }
+            const receipt = await github.rest.git.createBlob({ ...repo, content: Buffer.from(JSON.stringify(manifest, null, 2) + '\n').toString('base64'), encoding: 'base64' });
+            tree.push({ path: 'artifact-manifest.json', mode: '100644', type: 'blob', sha: receipt.data.sha });
+            const snapshot = await github.rest.git.createTree({ ...repo, tree });
+            const commit = await github.rest.git.createCommit({ ...repo, message: `Export verified sample ${sourceCommit} from run ${sourceRunId}`, tree: snapshot.data.sha, parents: [] });
+            await requireCurrentRequest();
+            // createRef is atomic and new-only: a racing or existing destination
+            // fails instead of overwriting any branch. There is no updateRef.
+            await github.rest.git.createRef({ ...repo, ref: 'refs/heads/' + destination, sha: commit.data.sha });
+            core.info(`Exported ${files.length} files from ${artifact.name} to ${repository}:${destination}`);
+            return { branch: destination, commit: commit.data.sha, manifestPath: 'artifact-manifest.json' };
