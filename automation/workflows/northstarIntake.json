@@ -1,0 +1,121 @@
+{
+  "id": "northstarIntake",
+  "name": "Northstar • authenticated ticket intake",
+  "active": false,
+  "nodes": [
+    {
+      "id": "authenticated-trigger",
+      "name": "Authenticated trigger",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        0,
+        0
+      ],
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "northstar-intake",
+        "authentication": "headerAuth",
+        "responseMode": "lastNode",
+        "options": {}
+      },
+      "webhookId": "northstar-intake",
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "northstar-webhook",
+          "name": "Northstar workflow token"
+        }
+      }
+    },
+    {
+      "id": "persist-intake",
+      "name": "Persist intake",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.3,
+      "position": [
+        260,
+        0
+      ],
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $env.API_INTERNAL_URL+'/tickets/intake' }}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "={{ 'Bearer '+$env.WORKFLOW_TOKEN }}"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ $json.body }}",
+        "options": {
+          "timeout": 10000,
+          "response": {
+            "response": {
+              "fullResponse": true,
+              "neverError": true,
+              "responseFormat": "json"
+            }
+          },
+          "redirect": {
+            "redirect": {
+              "followRedirects": false
+            }
+          }
+        }
+      },
+      "onError": "continueRegularOutput",
+      "retryOnFail": false
+    },
+    {
+      "id": "intake-result",
+      "name": "Intake result",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        520,
+        0
+      ],
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "return [{json:$json.body || $json}];"
+      }
+    }
+  ],
+  "connections": {
+    "Authenticated trigger": {
+      "main": [
+        [
+          {
+            "node": "Persist intake",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Persist intake": {
+      "main": [
+        [
+          {
+            "node": "Intake result",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "executionTimeout": 180,
+    "saveDataErrorExecution": "all",
+    "saveDataSuccessExecution": "all",
+    "saveManualExecutions": true
+  },
+  "pinData": {},
+  "tags": []
+}

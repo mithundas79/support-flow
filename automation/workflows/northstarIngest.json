@@ -1,0 +1,280 @@
+{
+  "id": "northstarIngest",
+  "name": "Northstar • embed authored knowledge",
+  "active": false,
+  "nodes": [
+    {
+      "id": "authenticated-trigger",
+      "name": "Authenticated trigger",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        0,
+        0
+      ],
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "northstar-ingest",
+        "authentication": "headerAuth",
+        "responseMode": "lastNode",
+        "options": {}
+      },
+      "webhookId": "northstar-ingest",
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "northstar-webhook",
+          "name": "Northstar workflow token"
+        }
+      }
+    },
+    {
+      "id": "read-authored-corpus",
+      "name": "Read authored corpus",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.3,
+      "position": [
+        260,
+        0
+      ],
+      "parameters": {
+        "method": "GET",
+        "url": "={{ $env.API_INTERNAL_URL+'/knowledge/documents' }}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "={{ 'Bearer '+$env.WORKFLOW_TOKEN }}"
+            }
+          ]
+        },
+        "options": {
+          "timeout": 10000,
+          "response": {
+            "response": {
+              "fullResponse": true,
+              "neverError": true,
+              "responseFormat": "json"
+            }
+          },
+          "redirect": {
+            "redirect": {
+              "followRedirects": false
+            }
+          }
+        }
+      },
+      "onError": "continueRegularOutput",
+      "retryOnFail": false
+    },
+    {
+      "id": "build-corpus-embeddings",
+      "name": "Build corpus embeddings",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        520,
+        0
+      ],
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "if($json.statusCode!==200)throw new Error('Knowledge corpus unavailable');const documents=$json.body.documents;if(!Array.isArray(documents)||documents.length<1||documents.length>32||documents.some(x=>typeof x.content!=='string'||x.content.length>10000))throw new Error('Corpus must have 1..32 bounded authored documents');return [{json:{documents,request:{model:$env.OPENAI_EMBEDDING_MODEL,input:documents.map(x=>x.title+'\\n'+x.content),dimensions:1536}}}];"
+      }
+    },
+    {
+      "id": "openai-corpus-embeddings",
+      "name": "OpenAI corpus embeddings",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.3,
+      "position": [
+        780,
+        0
+      ],
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $env.OPENAI_BASE_URL+'/embeddings' }}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "={{ 'Bearer '+$env.OPENAI_API_KEY }}"
+            },
+            {
+              "name": "X-Fixture-External-Id",
+              "value": "={{ $json.job?.ticket.externalId || 'knowledge-ingest' }}"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ $json.request }}",
+        "options": {
+          "timeout": "={{ Number($env.PROVIDER_TIMEOUT_MS || 20000) }}",
+          "response": {
+            "response": {
+              "fullResponse": true,
+              "neverError": true,
+              "responseFormat": "json"
+            }
+          },
+          "redirect": {
+            "redirect": {
+              "followRedirects": false
+            }
+          }
+        }
+      },
+      "onError": "continueRegularOutput",
+      "retryOnFail": false
+    },
+    {
+      "id": "validate-corpus-embeddings",
+      "name": "Validate corpus embeddings",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1040,
+        0
+      ],
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "const docs=$('Build corpus embeddings').first().json.documents;const rows=$json.body?.data;if($json.statusCode!==200||!Array.isArray(rows)||rows.length!==docs.length)throw new Error('Corpus embedding provider failed');const documents=docs.map((d,i)=>{const embedding=rows.find(x=>x.index===i)?.embedding;if(!Array.isArray(embedding)||embedding.length!==1536||embedding.some(x=>typeof x!=='number'||!Number.isFinite(x)))throw new Error('Invalid corpus vector');return {id:d.id,title:d.title,content:d.content,...(d.url?{url:d.url}:{}),embedding};});return [{json:{documents}}];"
+      }
+    },
+    {
+      "id": "upsert-pgvector-corpus",
+      "name": "Upsert pgvector corpus",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.3,
+      "position": [
+        1300,
+        220
+      ],
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $env.API_INTERNAL_URL+'/knowledge/upsert' }}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "={{ 'Bearer '+$env.WORKFLOW_TOKEN }}"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ {documents:$json.documents} }}",
+        "options": {
+          "timeout": 10000,
+          "response": {
+            "response": {
+              "fullResponse": true,
+              "neverError": true,
+              "responseFormat": "json"
+            }
+          },
+          "redirect": {
+            "redirect": {
+              "followRedirects": false
+            }
+          }
+        }
+      },
+      "onError": "continueRegularOutput",
+      "retryOnFail": false
+    },
+    {
+      "id": "ingestion-result",
+      "name": "Ingestion result",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        0,
+        220
+      ],
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "return [{json:$json.body || $json}];"
+      }
+    }
+  ],
+  "connections": {
+    "Authenticated trigger": {
+      "main": [
+        [
+          {
+            "node": "Read authored corpus",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Read authored corpus": {
+      "main": [
+        [
+          {
+            "node": "Build corpus embeddings",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build corpus embeddings": {
+      "main": [
+        [
+          {
+            "node": "OpenAI corpus embeddings",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenAI corpus embeddings": {
+      "main": [
+        [
+          {
+            "node": "Validate corpus embeddings",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Validate corpus embeddings": {
+      "main": [
+        [
+          {
+            "node": "Upsert pgvector corpus",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Upsert pgvector corpus": {
+      "main": [
+        [
+          {
+            "node": "Ingestion result",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "executionTimeout": 180,
+    "saveDataErrorExecution": "all",
+    "saveDataSuccessExecution": "all",
+    "saveManualExecutions": true
+  },
+  "pinData": {},
+  "tags": []
+}

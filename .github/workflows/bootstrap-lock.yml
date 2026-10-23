@@ -1,0 +1,33 @@
+name: Bootstrap exact dependency lock
+
+# Temporary branch-only workflow. Removed after its actual generated lock is committed.
+on:
+  push:
+    branches: [feature/support-automation-release]
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  lock:
+    if: github.ref == 'refs/heads/feature/support-automation-release' || github.head_ref == 'feature/support-automation-release'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: '22'
+      - name: Generate real npm metadata and integrity lock
+        run: npm install --package-lock-only --ignore-scripts --audit=false --fund=false
+      - name: Preserve generated lock for an explicit reviewed commit
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: generated-package-lock-${{ github.sha }}
+          path: package-lock.json
+          if-no-files-found: error
+          retention-days: 3

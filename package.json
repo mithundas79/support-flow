@@ -17,14 +17,19 @@
     "typecheck": "npm run typecheck --workspaces --if-present",
     "test": "npm run test --workspaces --if-present",
     "test:integration": "npm run test:integration --workspace @support-flow/api --if-present",
-    "test:e2e": "playwright test",
+    "test:e2e": "playwright test tests/e2e/independent-demo.spec.ts",
     "dev:web": "npm run dev --workspace @support-flow/web",
-    "dev:api": "npm run dev --workspace @support-flow/api"
+    "dev:api": "npm run dev --workspace @support-flow/api",
+    "test:web:e2e": "npm run test:e2e --workspace @support-flow/web",
+    "test:acceptance": "node --test --test-concurrency=1 tests/acceptance/*.test.mjs",
+    "check:public": "node scripts/check-demo-bundle.mjs",
+    "test:automation": "node --test automation/tests/fixture.test.mjs automation/tests/gmail.test.mjs"
   },
   "devDependencies": {
-    "@types/node": "22.18.11",
-    "tsx": "4.20.6",
+    "@types/node": "20.19.43",
+    "tsx": "4.23.13",
     "typescript": "5.9.3",
-    "vitest": "3.2.4"
+    "vitest": "2.1.9",
+    "@playwright/test": "1.56.1"
   }
 }
