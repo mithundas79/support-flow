@@ -1,0 +1,62 @@
+[
+  {
+    "id": "northstar-webhook-auth",
+    "title": "Verify webhook signatures",
+    "content": "Northstar signs every webhook with an HMAC SHA-256 signature. Read the raw request bytes before parsing JSON. Compute HMAC with your endpoint signing secret and compare the hex digest with X-Northstar-Signature using a constant-time comparison. Reject timestamps older than five minutes. Find the secret under Settings > Webhooks > Endpoint > Signing secret. Never paste the secret into a support ticket.",
+    "url": "https://docs.northstar.example/webhook-auth"
+  },
+  {
+    "id": "northstar-sso-setup",
+    "title": "Configure SAML SSO",
+    "content": "A workspace owner can configure SAML SSO under Settings > Authentication > SAML. Copy the Northstar ACS URL and Entity ID into the identity provider. Upload the IdP metadata XML and map the email claim to the member's verified email. Keep one owner signed in while testing a new SSO configuration. If sign-in fails, record the non-secret error code and timestamp and ask a workspace owner to review the IdP configuration.",
+    "url": "https://docs.northstar.example/sso-setup"
+  },
+  {
+    "id": "northstar-billing-policy",
+    "title": "Billing and subscription requests",
+    "content": "Invoices are available to workspace owners under Settings > Billing > Invoices. Northstar support drafts cannot issue refunds, cancel subscriptions, change payment details, or promise credits. A billing specialist must verify the requester and inspect the account before taking a billing action. Route refunds, disputed charges, cancellations, or payment changes to the billing review queue.",
+    "url": "https://docs.northstar.example/billing-policy"
+  },
+  {
+    "id": "northstar-delivery-retry",
+    "title": "Webhook retries and delivery logs",
+    "content": "Northstar retries unsuccessful webhook deliveries after 1 minute, 5 minutes, and 30 minutes. A response with a 2xx status ends retrying. A timeout after ten seconds counts as an unsuccessful delivery. Inspect Settings > Webhooks > Delivery logs for the attempt ID, response code, and timestamp. Make receivers idempotent using the event ID. A workspace owner can replay a failed event from the delivery log after fixing the receiver.",
+    "url": "https://docs.northstar.example/delivery-retry"
+  },
+  {
+    "id": "northstar-api-keys",
+    "title": "Create and rotate API keys",
+    "content": "A workspace owner or administrator can create API keys under Settings > Developer > API keys. Grant the minimum required scopes. For rotation, create a replacement key, update your server secret store, test a request, then revoke the old key. Keys must remain on trusted servers and must not appear in browser code, logs, or tickets. If a key was exposed, revoke it immediately through the workspace administrator.",
+    "url": "https://docs.northstar.example/api-keys"
+  },
+  {
+    "id": "northstar-workspace-roles",
+    "title": "Workspace roles and permissions",
+    "content": "Northstar has owner, administrator, editor, and viewer workspace roles. Owners manage billing and ownership. Administrators manage members and integration settings. Editors can change project data. Viewers can read project data. A workspace owner or administrator changes ordinary member roles under Settings > Members. Ownership transfers and account identity changes require a verified human support specialist.",
+    "url": "https://docs.northstar.example/workspace-roles"
+  },
+  {
+    "id": "northstar-password-reset",
+    "title": "Reset a password safely",
+    "content": "Use Forgot password on the Northstar sign-in page and enter the verified account email. Reset links expire after 30 minutes and can be used once. Check spam and confirm the workspace uses password sign-in; SSO-only members must use their identity provider. Support cannot disclose reset tokens, disable MFA, bypass verification, or change the account email from a ticket. Those requests need identity verification by a human specialist.",
+    "url": "https://docs.northstar.example/password-reset"
+  },
+  {
+    "id": "northstar-slack-connect",
+    "title": "Connect Slack notifications",
+    "content": "An administrator can connect Slack under Settings > Integrations > Slack. Authorize the intended Slack workspace, choose a channel, then use Send test notification. Invite the Northstar app to private channels before testing. If notifications stop, verify the app remains installed and channel permissions have not changed. Disconnecting and reconnecting requires a workspace administrator.",
+    "url": "https://docs.northstar.example/slack-connect"
+  },
+  {
+    "id": "northstar-export-data",
+    "title": "Export project data as CSV",
+    "content": "Editors and administrators can export a project's visible data from Project > More > Export CSV. The export uses the current filters and includes UTF-8 column headers. Exports larger than 50,000 rows must be split by date range. Viewers can request an export from their workspace administrator. Support does not email private workspace exports or delete account data based only on a support request.",
+    "url": "https://docs.northstar.example/export-data"
+  },
+  {
+    "id": "northstar-rate-limits",
+    "title": "Handle API rate limits",
+    "content": "Northstar returns HTTP 429 when a workspace exceeds its API quota. Respect the Retry-After header before retrying. Use exponential backoff with random jitter, batch compatible reads, and cache unchanged responses. Each workspace shares its quota across API keys. Find current usage under Settings > Developer > API usage. Do not continuously retry a throttled request; ask an administrator to inspect unusually high traffic.",
+    "url": "https://docs.northstar.example/rate-limits"
+  }
+]

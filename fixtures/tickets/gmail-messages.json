@@ -1,0 +1,57 @@
+[
+  {
+    "id": "18d9ff0123456789",
+    "threadId": "18d9aa0123456789",
+    "labelIds": [
+      "INBOX",
+      "UNREAD",
+      "Label_123"
+    ],
+    "sizeEstimate": 1421,
+    "subject": "Webhook signature question",
+    "from": {
+      "value": [
+        {
+          "address": "Avery@example.test",
+          "name": "Avery Quinn"
+        }
+      ],
+      "text": "Avery Quinn <Avery@example.test>"
+    },
+    "text": "How do I validate an HMAC webhook signature?\nPlease explain the raw body.",
+    "html": "<p>How do I validate an HMAC webhook signature?</p>"
+  },
+  {
+    "id": "18d9ff0123456790",
+    "threadId": "18d9aa0123456790",
+    "sizeEstimate": 1820,
+    "payload": {
+      "mimeType": "multipart/alternative",
+      "headers": [
+        {
+          "name": "From",
+          "value": "\"Avery Quinn\" <avery@example.test>"
+        },
+        {
+          "name": "Subject",
+          "value": "Webhook signature question"
+        }
+      ],
+      "parts": [
+        {
+          "mimeType": "text/plain",
+          "body": {
+            "size": 48,
+            "data": "SG93IGRvIEkgdmFsaWRhdGUgYW4gSE1BQyB3ZWJob29rIHNpZ25hdHVyZT8"
+          }
+        },
+        {
+          "mimeType": "text/html",
+          "body": {
+            "data": "PGltZyBzcmM9Imh0dHBzOi8vZXZpbC5pbnZhbGlkL3RyYWNrIj4"
+          }
+        }
+      ]
+    }
+  }
+]

@@ -1,0 +1,229 @@
+{
+  "id": "northstarGmailIntake",
+  "name": "Northstar • optional dedicated Gmail intake",
+  "active": false,
+  "nodes": [
+    {
+      "id": "dedicated-gmail-inbox",
+      "name": "Dedicated Gmail inbox",
+      "type": "n8n-nodes-base.gmailTrigger",
+      "typeVersion": 1.4,
+      "position": [
+        0,
+        0
+      ],
+      "parameters": {
+        "authentication": "oAuth2",
+        "event": "messageReceived",
+        "pollTimes": {
+          "item": [
+            {
+              "mode": "everyMinute"
+            }
+          ]
+        },
+        "simple": false,
+        "maxResults": 1,
+        "filters": {
+          "q": "label:NorthstarSupport is:unread -from:me smaller:250000",
+          "readStatus": "unread"
+        },
+        "options": {
+          "downloadAttachments": false
+        }
+      },
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "configure-gmail-oauth2",
+          "name": "Configure dedicated Gmail OAuth2"
+        }
+      }
+    },
+    {
+      "id": "normalize-gmail-intake",
+      "name": "Normalize Gmail intake",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        260,
+        0
+      ],
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "function normalizeGmail(message, mailboxKey) {\n if(!message||typeof message!=='object'||!/^[-a-zA-Z0-9_]{1,80}$/.test(mailboxKey||''))throw new Error('Configure a stable GMAIL_MAILBOX_KEY for this dedicated mailbox.');\n if(typeof message.id!=='string'||!/^[-a-zA-Z0-9_]{1,128}$/.test(message.id))throw new Error('Gmail immutable message id is required.');\n if(Number(message.sizeEstimate||0)>250000)throw new Error('Message exceeds the 250 KB intake limit; review it manually.');\n const headers=Array.isArray(message.payload?.headers)?message.payload.headers:[];\n const header=name=>headers.find(x=>typeof x.name==='string'&&x.name.toLowerCase()===name)?.value;\n let address,name;\n if(Array.isArray(message.from?.value)){\n  if(message.from.value.length!==1)throw new Error('Exactly one sender is required.');\n  address=message.from.value[0].address;name=message.from.value[0].name;\n }else{\n  const from=typeof message.From==='string'?message.From:typeof message.from==='string'?message.from:header('from');\n  if(typeof from!=='string'||/[\\r\\n]/.test(from))throw new Error('A valid sender is required.');\n  const addresses=from.match(/[a-zA-Z0-9.!#$%&'*+/=?^_`{|}~-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}/g)||[];\n  if(addresses.length!==1)throw new Error('Exactly one sender is required.');\n  address=addresses[0];name=from.includes('<')?from.slice(0,from.indexOf('<')).trim().replace(/^\"|\"$/g,''):'';\n }\n if(typeof address!=='string'||!/^[^\\s<>@,;]+@[^\\s<>@,;]+\\.[^\\s<>@,;]+$/.test(address)||address.length>320||/[\\r\\n]/.test(String(name||'')))throw new Error('Invalid sender address.');\n function plain(part){\n  if(!part||typeof part!=='object')return '';\n  if(typeof part.filename==='string'&&part.filename)return '';\n  if(part.mimeType==='text/plain'&&typeof part.body?.data==='string')return Buffer.from(part.body.data,'base64url').toString('utf8');\n  if(Array.isArray(part.parts))return part.parts.map(plain).filter(Boolean).join('\\n');\n  return '';\n }\n const body=typeof message.text==='string'?message.text:plain(message.payload);\n if(!body?.trim())throw new Error('No plain-text body is available; request a description manually. Attachments and remote HTML are not fetched.');\n if(body.trim().length>50000)throw new Error('Plain-text body exceeds 50,000 characters; preserve it for manual review.');\n const subject=String(message.subject||message.Subject||header('subject')||'(no subject)').replace(/[\\r\\n]+/g,' ').trim()||'(no subject)';\n if(subject.length>300)throw new Error('Subject exceeds 300 characters; preserve it for manual review.');\n return {externalId:'gmail:'+mailboxKey+':'+message.id,subject,body:body.trim(),customerName:(String(name||'').trim()||address.split('@')[0]).slice(0,200),customerEmail:address.toLowerCase()};\n}\nreturn $input.all().map((item,index)=>({json:{ticket:normalizeGmail(item.json,$env.GMAIL_MAILBOX_KEY),gmailId:item.json.id},pairedItem:{item:index}}));"
+      }
+    },
+    {
+      "id": "persist-gmail-message",
+      "name": "Persist Gmail message",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.3,
+      "position": [
+        520,
+        0
+      ],
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $env.API_INTERNAL_URL+'/tickets/intake' }}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "={{ 'Bearer '+$env.WORKFLOW_TOKEN }}"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ $json.ticket }}",
+        "options": {
+          "timeout": 10000,
+          "response": {
+            "response": {
+              "fullResponse": true,
+              "neverError": true,
+              "responseFormat": "json"
+            }
+          },
+          "redirect": {
+            "redirect": {
+              "followRedirects": false
+            }
+          }
+        }
+      },
+      "onError": "continueRegularOutput",
+      "retryOnFail": false
+    },
+    {
+      "id": "gmail-message-persisted",
+      "name": "Gmail message persisted",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        780,
+        0
+      ],
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "check",
+              "leftValue": "={{ $json.statusCode===200 || $json.statusCode===201 }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      }
+    },
+    {
+      "id": "mark-persisted-message-read",
+      "name": "Mark persisted message read",
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.1,
+      "position": [
+        1040,
+        0
+      ],
+      "parameters": {
+        "resource": "message",
+        "operation": "markAsRead",
+        "messageId": "={{ $('Normalize Gmail intake').item.json.gmailId }}"
+      },
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "configure-gmail-oauth2",
+          "name": "Configure dedicated Gmail OAuth2"
+        }
+      },
+      "retryOnFail": false
+    },
+    {
+      "id": "keep-failed-message-for-operator",
+      "name": "Keep failed message for operator",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1300,
+        220
+      ],
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "throw new Error('Intake was not persisted. Message remains unread; retry this execution after fixing the API. External message IDs make replay idempotent.');"
+      }
+    }
+  ],
+  "connections": {
+    "Dedicated Gmail inbox": {
+      "main": [
+        [
+          {
+            "node": "Normalize Gmail intake",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Normalize Gmail intake": {
+      "main": [
+        [
+          {
+            "node": "Persist Gmail message",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Persist Gmail message": {
+      "main": [
+        [
+          {
+            "node": "Gmail message persisted",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Gmail message persisted": {
+      "main": [
+        [
+          {
+            "node": "Mark persisted message read",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Keep failed message for operator",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "executionTimeout": 180
+  },
+  "pinData": {},
+  "tags": []
+}
