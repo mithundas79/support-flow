@@ -28,10 +28,13 @@ jobs:
           node-version: '22'
           cache: npm
       - run: npm ci
+      - name: Check production dependency advisories
+        run: npm audit --omit=dev --audit-level=high
       - run: npm run build
       - run: npm run typecheck
       - run: npm test
       - run: npm run test:automation
+      - run: node --test scripts/verify-published-demo.test.mjs
       - run: npm run check:public
       - run: npx playwright install --with-deps chromium
       - run: npm run test:web:e2e
