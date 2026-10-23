@@ -23,7 +23,9 @@ jobs:
         with:
           node-version: '22'
       - name: Generate real npm metadata and integrity lock
-        run: npm install --package-lock-only --ignore-scripts --audit=false --fund=false
+        run: |
+          node --input-type=module -e "import { rmSync } from 'node:fs'; rmSync('package-lock.json', { force: true });"
+          npm install --package-lock-only --ignore-scripts --audit=false --fund=false
       - name: Preserve generated lock for an explicit reviewed commit
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
