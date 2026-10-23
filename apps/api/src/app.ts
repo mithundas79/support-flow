@@ -1,12 +1,13 @@
 import Fastify, { type FastifyRequest } from 'fastify';
 import cookie from '@fastify/cookie';
 import { createHash, randomBytes, timingSafeEqual } from 'node:crypto';
-import { z, ZodError } from 'zod';
+import { z } from 'zod';
 import { createTicketSchema, loginSchema, rejectTicketSchema, updateDraftSchema, versionSchema } from '@support-flow/contracts';
 import { assessmentSchema, claimSchema, deliveryFailureSchema, DomainError, embeddingSchema, failureSchema, knowledgeDocumentSchema, outboxClaimSchema, searchSchema, sentSchema } from '@support-flow/core';
 import type { Config } from './config.js';
 import { createPool, migrate, seedKnowledge, type Pool } from './db.js';
 import { Store } from './store.js';
+import { classifyRequestError } from './errors.js';
 const hash = (v: string) => createHash('sha256').update(v).digest('hex');
 const equal = (a: string, b: string) => timingSafeEqual(Buffer.from(hash(a)), Buffer.from(hash(b)));
 const idSchema = z.object({ id: z.string().uuid() });
@@ -23,11 +24,9 @@ export async function createApp(config: Config, options: { pool?: Pool; migrate?
     reply.header('Cache-Control', 'no-store').header('X-Content-Type-Options', 'nosniff').header('Referrer-Policy', 'no-referrer');
   });
   app.setErrorHandler((error, _req, reply) => {
-    if (error instanceof ZodError) return reply.status(422).send({ error: { code: 'VALIDATION_ERROR', message: 'Request fields are invalid, missing, or exceed allowed limits.' } });
-    if (error instanceof DomainError) return reply.status(error.status).send({ error: { code: error.code, message: error.message } });
-    if (error.statusCode && error.statusCode >= 400 && error.statusCode < 500) return reply.status(error.statusCode).send({ error: { code: 'INVALID_REQUEST', message: 'Request could not be parsed or exceeds the size limit.' } });
-    app.log.error(error, 'Request failed');
-    return reply.status(500).send({ error: { code: 'INTERNAL_ERROR', message: 'Request failed. Retry only reversible operations.' } });
+    const classified = classifyRequestError(error);
+    if (classified.status >= 500) app.log.error(error, 'Request failed');
+    return reply.status(classified.status).send({ error: { code: classified.code, message: classified.message } });
   });
   const requireOrigin = (req: FastifyRequest) => { if (req.headers.origin !== config.appOrigin) throw new DomainError('INVALID_ORIGIN', 'Request origin is not allowed.', 403); };
   const requireSession = async (req: FastifyRequest) => {
