@@ -1,93 +1,102 @@
-# Validation record
+# Validation and release evidence
 
-This record distinguishes implemented checks from observed results. **No real-provider or published-demo verification is claimed unless its row contains an actual execution reference.**
+The selected main revision has completed the real CI suites below. **Artifact export, deployment and published-demo verification are still pending.** Controlled OpenAI responses and Mailpit were used; no live OpenAI, Gmail or Slack result is claimed.
 
-## Current evidence
+## Observed CI results
 
-| Check | Status | Evidence |
-| --- | --- | --- |
-| Supported runtime | Not yet run | Initial host shell reports Node v20.20.2/npm 10.8.2; repository targets Node 22 |
-| Locked fresh-checkout install | Blocked | Lockfile generation could not resolve all API dependencies from the available offline cache; no package-lock.json or supported-runtime fresh-install proof exists yet |
-| Web build/typecheck and shared package builds | Passed, limited local environment | Vite 6.4.1 production build includes TypeScript checking; contracts/core also built with TypeScript 5.9.3 |
-| Workspace unit tests | Passed, limited local environment | 19 passed: contracts 2, core 2, API configuration 1, web domain 9 and React render 5; no skips |
-| Native automation unit tests | Passed, limited local environment | 8 passed: synthetic corpus/embedding/provider guards, reviewer-link base path, actual TCP SMTP fault fixture and Gmail normalization/safety; no skips |
-| Full API build/typecheck | Blocked | Fastify, cookie and PostgreSQL dependency packages are unavailable locally |
-| Real PostgreSQL/API integration | Not yet run | Nine authored cases require the unavailable Docker Linux engine |
-| Real n8n with controlled providers | Not yet run | Executable workflows and fixture service are checked in; no container execution IDs or topology outputs have been observed |
-| Independent whole-flow acceptance | Not yet run | Authored in tests/acceptance and acceptance-matrix.md; requires the actual stack |
-| Local desktop/mobile sample browser | Passed, limited local environment | Final integrated app-local suite: 18/18 in 25.2 seconds; final independent suite: 14/14 in 16.6 seconds; zero failures/skips |
-| Authenticated live UI → API → n8n → Mailpit | Not yet run | Requires the real fixture Docker stack; local sample evidence does not substitute |
-| Published Pages browser | Not yet run | No verified deployment |
-| OpenAI live smoke | Not run | Explicit opt-in credentials required; no cost or usage measured |
-| Gmail/Slack live integrations | Not run | Optional integrations; no execution or delivery claimed |
+Source: [`0c4fdd19af853f67176f3beceaf1b79b71dc9275`](https://github.com/mithundas79/support-flow/commit/0c4fdd19af853f67176f3beceaf1b79b71dc9275), main-push [run 39957927244](https://github.com/mithundas79/support-flow/actions/runs/39957927244), attempt 1. The complete run is green. These are observed counts, with **zero failed or skipped test cases**.
 
-## Required execution record
+| Gate | Command or entry point | Observed result | CI receipt |
+| --- | --- | --- | --- |
+| Clean installation | Declared npm 11.21.1, then `npm ci` | Passed on Node 22 | [Quality job][quality-ci] |
+| Dependency audits | Full `npm audit --json`; production `npm audit --omit=dev --audit-level=high` | 0 vulnerabilities in both reports | [Quality job][quality-ci] |
+| Build and typecheck | `npm run build`; `npm run typecheck` | Passed, including the API | [Quality job][quality-ci] |
+| Workspace unit tests | `npm test` | 22 passed: contracts 2, core 2, API 4, web 14 | [Quality job][quality-ci] |
+| Native automation tests | `npm run test:automation` | 10 passed | [Quality job][quality-ci] |
+| Published-byte verifier tests | `node --test scripts/verify-published-demo.test.mjs` | 9 local HTTP fixture tests passed | [Quality job][quality-ci] |
+| Sample bundle inspection | `npm run check:public` | Built asset scan passed | [Quality job][quality-ci] |
+| App browser tests | `npm run test:web:e2e` | 18 passed, desktop and mobile | [Quality job][quality-ci] |
+| Independent sample browser tests | `npm run test:e2e` | 14 passed, seven per viewport | [Quality job][quality-ci] |
+| Real PostgreSQL/API integration | API integration suite inside the stack runner | 9 passed | [Integration job][integration-ci] |
+| Actual n8n workflow execution | `automation/tests/stack.test.mjs` inside the stack runner | 16 passed | [Integration job][integration-ci] |
+| Independent whole-flow acceptance | `tests/acceptance/whole-flow.test.mjs` inside the stack runner | 19 passed | [Integration job][integration-ci] |
+| Authenticated stack UI | `tests/e2e/independent-live.spec.ts` inside the stack runner | 2 passed, desktop and mobile, with Mailpit delivery | [Integration job][integration-ci] |
+| Verified-artifact stage | Preserve sample only after quality and integration succeed | Passed for this main revision | [Artifact job][artifact-ci] |
 
-For each run, record date, Git revision, exact command, runtime/service versions, pass/fail/skip counts, and saved output or workflow execution IDs. Provider fixture results must identify the fixture scenarios and observed call counts. A skipped test is not a pass. Screenshots must come from the running application.
+Runtime: **Node 22.23.3**, **npm 11.21.1**, **Playwright 1.56.1**, and its downloaded Linux **Chromium 141.0.7390.37 / build 1194**. The local browser executable override was empty. Source dependencies include Vite 6.4.4 and Vitest 4.1.12. Services are pinned in `docker-compose.yml`; the actual n8n container imported, published and executed the workflow graphs.
 
-## Integrated local checks - 2026-10-23
+The acceptance suite includes concurrent duplicate intake and approval, reviewer/internal authentication, CSRF/origin rejection, malformed inputs and provider envelopes, refusal/rate-limit/timeout handling, unsupported citations, specialist gating, restart recovery and ambiguous SMTP acknowledgment. Delivery checks compare the **complete approved revision**, allowing only demonstrated SMTP CRLF and final line framing. Repeated recovery/dispatch must not create a second Mailpit message after uncertain acceptance.
 
-The integration branch incorporated final web source `bbac1fb` as `1f2d180`, final automation review fixes as `d73a684`, and the evaluation/screenshot follow-up as `d3318cc`. These are local Git commits, not a published deployment. Runtime was Node 20.20.2/npm 10.8.2 with existing public package copies and cached archives. Workspace links were represented by local ignored package copies because native workspace symlinks were unavailable. This does not verify `npm ci` or Node 22.
+The 30 fictional tickets matched their authored category, priority and stored disposition expectations in one corpus acceptance test. This is included in the 19 acceptance tests; it is **not 30 additional tests or measured live-model accuracy**. The corresponding knowledge base contains ten fictional articles.
 
-Observed commands and results:
+## Final release provenance
 
-| Command | Observed result |
+The main artifact is selected below. Export and publication must preserve these exact bytes; public completion requires its own HTTP and browser receipts. No placeholder manifest has been created.
+
+| Receipt | Current status |
 | --- | --- |
-| `npm run build --workspace @support-flow/web` | Passed, including TypeScript checking and the `/support-flow/` production asset base |
-| `npm test` | 19 passed, zero failed/skipped across all four workspaces |
-| `npm run test:automation` | 8 passed, zero failed/skipped after the final actual-TCP fixture regression |
-| `npm run check:public` | All three built text assets passed the credential-pattern/direct-provider-endpoint scan |
-| `node --check automation/scripts/live-evaluation.mjs` | Passed syntax validation; no live provider request made |
-| `node --check tests/acceptance/whole-flow.test.mjs` | Passed syntax validation; no actual stack execution claimed |
-| `npm run test:web:e2e` | 18 passed, zero failed/skipped in 25.2 seconds against the integrated built preview |
+| Main source commit | `0c4fdd19af853f67176f3beceaf1b79b71dc9275` |
+| Successful main-push CI run | [39957927244](https://github.com/mithundas79/support-flow/actions/runs/39957927244), attempt 1 |
+| Selected artifact ID | `12503712622` |
+| Exact artifact name | `verified-sample-demo-0c4fdd19af853f67176f3beceaf1b79b71dc9275` |
+| Artifact archive digest | `sha256:6ae705956c5f10caf0e2d68823444e1bd85a92fd4c4d30ea7ea5c9941ecfa76c` |
+| Artifact archive size | 83,152 bytes |
+| Artifact-only export branch and commit | Pending validation/export of that exact main artifact |
+| `docs/demo-release.json` | Pending the actual artifact receipt; must enumerate every regular artifact file and SHA-256 |
+| Publication repository commit and deployed path | Pending publication |
+| Published HTML/JS/CSS byte comparison | Pending actual HTTP verification against the manifest |
+| Published desktop/mobile browser run | Pending exactly 14 passing checks, zero failures/skips |
 
-For the browser suite, `WEB_DEMO_URL=http://127.0.0.1:4183/support-flow/` selected the retained integrated preview and `PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH` selected the existing Chromium headless-shell revision 1228. Playwright was 1.56.1. Nine scenarios ran in desktop and mobile viewports, including serialized simultaneous cross-tab edits. CI clears this local override and installs the browser belonging to the declared Playwright package.
+The final manifest will bind `baseUrl`, `sourceCommit`, `sourceRunId`, `sourceArtifactId`, the GitHub artifact digest and per-file hashes. The byte verifier compares buffers without text normalization and rejects unexpected paths, redirects, missing files and hash differences. It preserves the claimed provenance fields; the exporter separately validates their GitHub run/artifact relationship and the complete ZIP file enumeration.
 
-The coordinating reviewer independently ran the final combined built preview at the same port with `PLAYWRIGHT_BASE_URL=http://127.0.0.1:4183/support-flow/`, `PLAYWRIGHT_EXTERNAL_SERVER=1`, and the same existing Chromium executable selected:
+## Observed n8n trace
+
+The [main integration log][integration-ci] records `N8N_TRACE` for workflow `northstarProcess`, execution **3**, ticket `02bb3636-b4e4-4f4b-9108-a3ed9d72b19f`. Three controlled-provider requests returned HTTP 200: classification (600 maximum output tokens), a 1536-dimensional query embedding, and drafting (1200 maximum output tokens). Provider mode was `fixture`; the OpenAI endpoint flag was false. Source-presence and knowledge-base-subset assertions passed; individual source IDs were not printed.
+
+The same log records these explicit `N8N_FAILURE_TRACE` executions:
+
+| Execution | Controlled scenario | Calls in this attempt | Persisted ticket status |
+| --- | --- | --- | --- |
+| 8 | No sources | 2 | `needs_attention` |
+| 10 | Refusal | 1 | `needs_attention` |
+| 12 | Invalid JSON | 1 | `needs_attention` |
+| 14 | JSON null | 1 | `needs_attention` |
+| 16 | Non-array output | 1 | `needs_attention` |
+| 18 | Unsupported source | 3 | `needs_attention` |
+| 20 | Draft refusal | 3 | `needs_attention` |
+| 22 | Incomplete draft | 3 | `needs_attention` |
+| 24 | Invalid draft JSON | 3 | `needs_attention` |
+| 26 | HTTP 429 | 1 | `received` |
+| 28 | HTTP 500 | 1 | `received` |
+| 30 | Timeout | 1 | `received` |
+| 32 | Embedding error | 2 | `received` |
+
+`received` means that this retryable attempt was persisted and requeued. The independent acceptance suite separately drives the bounded attempt budget to human attention and checks the provider-call ceiling. These are actual engine executions with controlled providers, not real-model quality results.
+
+## What the evidence establishes
+
+| Mode | Observed scope | Provider boundary |
+| --- | --- | --- |
+| Public-sample build in CI | Prepared fictional records, edits/decisions/reset/reload, source panels, storage recovery, keyboard/mobile behavior, asset and request checks | Browser-only; no AI or email sending |
+| Authenticated fixture stack in CI | Actual React/API/PostgreSQL/n8n execution, durable jobs, source validation, immutable approval and Mailpit SMTP delivery | Only OpenAI/provider behavior is controlled; API, database and n8n are real |
+| Real OpenAI, Gmail and Slack | Not run | No live quality, OAuth, inbox delivery, Slack operation or provider cost claim |
+
+Mailpit acceptance proves that the configured local sink received the approved content. It does not prove customer inbox delivery or exactly-once email delivery. The fixture corpus does not establish representative production accuracy, scale or production readiness.
+
+## Reproduce the integration trace
+
+Follow the README's Node 22/npm 11.21.1 installation instructions, install the declared Playwright Chromium, then run:
 
 ```sh
-node node_modules/@playwright/test/cli.js test tests/e2e/independent-demo.spec.ts
+node automation/scripts/run-integration.mjs
 ```
 
-Observed result: **14 passed, zero failed/skipped in 16.6 seconds** on Node 20.20.2, Playwright 1.56.1 and Chromium revision 1228. This confirms the integrated sample artifact independently; it still does not verify the authenticated live stack or a published Pages deployment. The final automation test-only additions and explicit Docker build/import assertions do not change this browser artifact.
+The runner starts a disposable PID-named Docker project with fake credentials, imports/publishes actual n8n workflows, ingests fictional knowledge, runs the API/workflow/acceptance suites, and starts the authenticated UI for desktop/mobile checks. It supplies the required test origin, fixture timeout and project-isolation flags, then removes only its disposable resources. Test output includes workflow execution references; CI preserves its stack log and browser reports as evidence artifacts.
 
-## Observed local sample browser run — 2026-10-23
+The complete trace is: authenticated intake, persisted job, real n8n retrieval/draft save, reviewer revision and version-bound approval, immutable dispatch, then inspection of the received Mailpit content and audit history. Negative cases and recovery run against the same real services.
 
-Independent QA ran `tests/e2e/independent-demo.spec.ts` against the web worker's actual built preview at `http://127.0.0.1:4173/support-flow/`. This was an integration working-tree build, not a deployed release. Runtime: Node **20.20.2**, cached Playwright **1.56.1**, and the already installed Chromium headless-shell revision **1228**, selected through `PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH`. Playwright's normally pinned revision 1194 was unavailable. This is **not** a Node 22, clean installation, or default-browser-install verification.
+The [README screenshot](screenshots/review-workspace.png) is an actual application capture of fictional local sample data. It is not represented as a screenshot of an as-yet-unverified public deployment.
 
-Exact command, with the external preview already running and the existing Chromium executable path set in the environment:
-
-```sh
-PLAYWRIGHT_EXTERNAL_SERVER=1 node node_modules/@playwright/test/cli.js test tests/e2e/independent-demo.spec.ts
-```
-
-Result: **14 passed, 0 failed, 0 skipped in 11.8 seconds**. Desktop viewport: 1440 × 1000. Mobile: Playwright Pixel 5 profile. Both projects exercised sample disclosure/base path, source inspection, draft revision/approval/reload, blocked specialist approval and keyboard rejection, filters/empty/reset, corrupt-storage restoration, stale cross-tab edits, keyboard focus/dialog Escape, and horizontal viewport fit. Request observation found zero remote requests, failed HTTP requests, JavaScript exceptions or console errors in these scenarios.
-
-A focused desktop rerun after adjusting screenshot scroll position passed **1/1 in 2.7 seconds**:
-
-```sh
-PLAYWRIGHT_EXTERNAL_SERVER=1 node node_modules/@playwright/test/cli.js test tests/e2e/independent-demo.spec.ts --project=desktop -g "revised current"
-```
-
-QA captured a screenshot from that focused run after a fictional reviewer edit. The final [README screenshot](screenshots/review-workspace.png) was subsequently refreshed from the web worker's actual final application capture for `bbac1fb`, showing the original prepared draft and its source excerpt. Both captures use fictional data. Browser dependencies came from existing public cached packages; no locked fresh-install claim is made. Native acceptance helpers also passed `node --check` syntax validation; their actual stack scenarios remain unexecuted here.
-
-## Reproducible whole-flow trace
-
-Pending actual execution. The intended trace is: authenticate reviewer; ingest fictional knowledge; submit a unique fictional ticket through the authenticated n8n intake webhook; observe a persisted grounded draft and sources; revise with an expected version; approve the new version; execute dispatch; inspect the received Mailpit message and audit events. Follow with stale approval and repeated dispatch checks.
-
-## Environment and release blockers
-
-- A running Docker Linux engine is unavailable. PostgreSQL/API integration, actual n8n execution, whole-flow recovery and authenticated live UI delivery remain unverified.
-- API dependencies and a complete lockfile must be resolved before `npm ci`, Docker image builds and the authored CI workflow can succeed.
-- Node 22 clean-checkout verification remains pending; local Node 20 results are a narrower check.
-- Published deployment is unavailable for verification; no Actions run, deployed SHA or Pages result is claimed.
-- README setup commands describe the intended implementation path; a complete fresh-checkout execution remains unverified.
-
-## Pending release checks
-
-- [ ] Resolve exact dependencies and commit a complete generated lockfile, then verify a clean Node 22 installation.
-- [ ] Build/typecheck the complete API and run all database, n8n, recovery and authenticated live-browser suites on the actual isolated stack with zero unexpected skips.
-- [ ] Publish the remaining tracked issues and reviewable implementation branches/PRs; close only criteria supported by evidence.
-- [ ] Run the authored CI workflow successfully before merging the release to main.
-- [ ] Deploy the verified immutable Pages artifact and record the exact commit, Actions run and deployment URL.
-- [ ] Run desktop/mobile browser checks against the actual published URL, including actions/reset, asset errors and provider-network isolation.
+[quality-ci]: https://github.com/mithundas79/support-flow/actions/runs/39957927244/job/120428315357
+[integration-ci]: https://github.com/mithundas79/support-flow/actions/runs/39957927244/job/120428314796
+[artifact-ci]: https://github.com/mithundas79/support-flow/actions/runs/39957927244/job/120429918021
