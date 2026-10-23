@@ -1,10 +1,10 @@
 # Independent acceptance matrix
 
-This matrix records observed execution, not merely authored tests. **Q** is the [quality job][quality-ci] and **I** is the [real-stack integration job][integration-ci] of green main-push run [39957927244][source-ci], source `0c4fdd19af853f67176f3beceaf1b79b71dc9275`. Export/public receipts remain pending in [validation.md](validation.md).
+This matrix records observed execution, not merely authored tests. **Q** is the [quality job][quality-ci] and **I** is the [real-stack integration job][integration-ci] of green main-push run [39957927244][source-ci], source `0c4fdd19af853f67176f3beceaf1b79b71dc9275`. **P** is the [actual published verification][public-ci]. Exact artifact/export/deployment receipts are recorded in [validation.md](validation.md).
 
 Controlled fixtures replace OpenAI responses and selected SMTP behavior. The API, PostgreSQL and n8n engine run as real services. The authenticated browser uses that actual stack.
 
-| ID | Criterion | Observed evidence / remaining gate |
+| ID | Criterion | Observed evidence |
 | --- | --- | --- |
 | F01 | Clean install, supported runtime, pinned dependencies and contracts | Q: Node 22/npm 11.21.1 `npm ci`, build/typecheck and 22 workspace tests passed |
 | F02 | Pinned services, readiness and persistent state | I: actual Compose stack, PostgreSQL/n8n readiness and restart checks passed |
@@ -27,10 +27,10 @@ Controlled fixtures replace OpenAI responses and selected SMTP behavior. The API
 | W03 | Keyboard, focus and responsive access work | Q: dialog/key flows, visible focus and viewport-fit checks passed |
 | W04 | Invalid sample storage recovers safely | Q: corrupted/blocked storage and reset cases passed |
 | W05 | Authenticated UI reaches the actual backend | I: two browser cases completed real fixture intake, versioned approval and Mailpit delivery |
-| R01 | Published Pages base path and assets work | Public verification pending; Q validates the built sample only |
-| R02 | Release identifies tested source and deployed bytes | Main run and verified artifact identified; export manifest and publication receipts pending |
-| D01 | Demo visitors and installers have clear paths | README has separate try/run paths, actual screenshot and supported npm 11.21.1 commands; public link pending |
-| D02 | Evidence is reproducible and accurately scoped | Q/I counts and commands recorded; final provenance awaits actual release receipts |
+| R01 | Published Pages base path and assets work | P: four exact file hashes/byte counts and 14 desktop/mobile cases passed with no failed requests or JavaScript errors |
+| R02 | Release identifies tested source and deployed bytes | Main artifact `12503712622`, orphan export, profile commit, Pages deployment and P are linked by the manifest and recorded release receipts |
+| D01 | Demo visitors and installers have clear paths | README links the verified live demo and separate boilerplate setup, with an actual screenshot and supported npm 11.21.1 commands |
+| D02 | Evidence is reproducible and accurately scoped | Q/I/P counts, commands, workflow traces and exact source/artifact/deployment receipts recorded; live-provider limits explicit |
 
 ## Evaluation limits
 
@@ -41,3 +41,4 @@ Ambiguous SMTP outcomes remain blocked for human reconciliation. Evidence and sc
 [source-ci]: https://github.com/mithundas79/support-flow/actions/runs/39957927244
 [quality-ci]: https://github.com/mithundas79/support-flow/actions/runs/39957927244/job/120428315357
 [integration-ci]: https://github.com/mithundas79/support-flow/actions/runs/39957927244/job/120428314796
+[public-ci]: https://github.com/mithundas79/support-flow/actions/runs/39959667796/job/120434182139

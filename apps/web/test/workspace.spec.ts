@@ -133,6 +133,18 @@ test('custom sample, long content, manual draft and reset remain honest and resp
   await expect(page.getByRole('button', { name: 'Approve draft' })).toBeDisabled();
   await page.getByRole('button', { name: 'Back to inbox' }).click();
   await page.getByRole('button', { name: 'Reset demo' }).click();
+  await expect(page.getByRole('status')).toContainText('Demo reset. The original examples are ready to explore.');
+  await expect.poll(() => page.evaluate(() => {
+    const state = JSON.parse(localStorage.getItem('support-flow.demo.v1')!) as { tickets: { id: string; draftVersion: number; status: string }[] };
+    return state.tickets.map(({ id, draftVersion, status }) => ({ id, draftVersion, status }));
+  })).toEqual([
+    { id: 'ns-1042', draftVersion: 1, status: 'awaiting_review' },
+    { id: 'ns-1041', draftVersion: 1, status: 'awaiting_review' },
+    { id: 'ns-1040', draftVersion: 1, status: 'needs_attention' },
+  ]);
+  await page.reload();
+  await expect(page.locator('.ticket-list .ticket-row')).toHaveCount(3);
+  await expect(page.getByRole('textbox', { name: 'Search tickets' })).toHaveValue('');
   await page.getByRole('textbox', { name: 'Search tickets' }).fill('Alex Fictional');
   await expect(page.getByRole('heading', { name: 'No tickets found' })).toBeVisible();
 });

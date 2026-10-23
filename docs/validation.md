@@ -1,6 +1,6 @@
 # Validation and release evidence
 
-The selected main revision has completed the real CI suites below. **Artifact export, deployment and published-demo verification are still pending.** Controlled OpenAI responses and Mailpit were used; no live OpenAI, Gmail or Slack result is claimed.
+The selected main revision passed the real CI suites below. Its exact artifact was exported, deployed and verified at [the public demo](https://mithundas79.github.io/support-flow/): **four files matched their hashes and byte counts, and 14 desktop/mobile browser checks passed**. Controlled OpenAI responses and Mailpit were used for the backend tests; no live OpenAI, Gmail or Slack result is claimed.
 
 ## Observed CI results
 
@@ -31,7 +31,7 @@ The 30 fictional tickets matched their authored category, priority and stored di
 
 ## Final release provenance
 
-The main artifact is selected below. Export and publication must preserve these exact bytes; public completion requires its own HTTP and browser receipts. No placeholder manifest has been created.
+The publication chain below preserves the verified main artifact. The [actual manifest](demo-release.json) records all four regular artifact files, their SHA-256 values and byte counts.
 
 | Receipt | Current status |
 | --- | --- |
@@ -41,13 +41,23 @@ The main artifact is selected below. Export and publication must preserve these 
 | Exact artifact name | `verified-sample-demo-0c4fdd19af853f67176f3beceaf1b79b71dc9275` |
 | Artifact archive digest | `sha256:6ae705956c5f10caf0e2d68823444e1bd85a92fd4c4d30ea7ea5c9941ecfa76c` |
 | Artifact archive size | 83,152 bytes |
-| Artifact-only export branch and commit | Pending validation/export of that exact main artifact |
-| `docs/demo-release.json` | Pending the actual artifact receipt; must enumerate every regular artifact file and SHA-256 |
-| Publication repository commit and deployed path | Pending publication |
-| Published HTML/JS/CSS byte comparison | Pending actual HTTP verification against the manifest |
-| Published desktop/mobile browser run | Pending exactly 14 passing checks, zero failures/skips |
+| Artifact exporter | [Run 39958581024][export-ci], job `120430507430`, successful |
+| Artifact-only export branch | `artifacts/verified-sample-demo-0c4fdd19af853f67176f3beceaf1b79b71dc9275` |
+| Orphan artifact commit | [`b44904cd600e70f1c759a80137104f5842600c18`](https://github.com/mithundas79/support-flow/commit/b44904cd600e70f1c759a80137104f5842600c18) |
+| Receipt blob | `9a7c16e5310606694980081f049e68b137fb2c9a`, preserved as [demo-release.json](demo-release.json) |
+| Publication review | [Profile PR 1](https://github.com/mithundas79/mithundas79.github.io/pull/1); four artifact files and their receipt, with prior profile entries unchanged |
+| Publication commit | [`bdca9d9a83f36899ff909bd68c8e9becf8ca979e`](https://github.com/mithundas79/mithundas79.github.io/commit/bdca9d9a83f36899ff909bd68c8e9becf8ca979e) |
+| Pages deployment | [Run 39959294793][pages-ci], build `120432923082` and deploy `120433081281`, successful |
+| Deployed path | [https://mithundas79.github.io/support-flow/](https://mithundas79.github.io/support-flow/) |
+| Published verification | [Run 39959667796][public-ci], attempt 1, job `120434182139`, successful |
+| Published verifier source | `5e7992223b761fbc0c8bdae6964bb9f79dbee5ac` (PR 8; checked merge revision `0534770`) |
+| Published file comparison | All four files matched SHA-256 and byte counts on their first HTTP attempt |
+| Published browser checks | 14 passed in 9.5 seconds: seven desktop, seven mobile; zero failures, skips, flaky cases, global errors or retries |
+| Public evidence artifact | `12503738583`, digest `sha256:6ce878bc239f579bb5c766b12b355fbe5063a6de0f0cc3512b2d4e36ad8ba352` |
 
-The final manifest will bind `baseUrl`, `sourceCommit`, `sourceRunId`, `sourceArtifactId`, the GitHub artifact digest and per-file hashes. The byte verifier compares buffers without text normalization and rejects unexpected paths, redirects, missing files and hash differences. It preserves the claimed provenance fields; the exporter separately validates their GitHub run/artifact relationship and the complete ZIP file enumeration.
+The manifest binds `baseUrl`, `sourceCommit`, `sourceRunId`, `sourceArtifactId`, the GitHub artifact digest and per-file hashes. The exporter validated the successful main-push run and all three CI gates, the exact artifact linkage and archive digest, then enumerated the ZIP before creating a new orphan branch. Publication copied the four files byte-for-byte without rebuilding. The public verifier compared buffers without text normalization and rejected unexpected paths, redirects, missing files and hash differences.
+
+The published browser run used Node 22 and the declared npm/Playwright installation against the actual HTTPS URL. Its strict JSON gate required exactly one passing attempt for each of the 14 cases. It exercised disclosures, source inspection, edit/approve/reject, reload/reset, filters, corrupt storage, cross-tab version conflicts and keyboard/mobile behavior, with zero JavaScript/console errors, failed requests or remote provider requests.
 
 ## Observed n8n trace
 
@@ -77,7 +87,7 @@ The same log records these explicit `N8N_FAILURE_TRACE` executions:
 
 | Mode | Observed scope | Provider boundary |
 | --- | --- | --- |
-| Public-sample build in CI | Prepared fictional records, edits/decisions/reset/reload, source panels, storage recovery, keyboard/mobile behavior, asset and request checks | Browser-only; no AI or email sending |
+| Published sample and its CI build | Prepared fictional records, edits/decisions/reset/reload, source panels, storage recovery, keyboard/mobile behavior, asset and request checks | Browser-only; no AI or email sending |
 | Authenticated fixture stack in CI | Actual React/API/PostgreSQL/n8n execution, durable jobs, source validation, immutable approval and Mailpit SMTP delivery | Only OpenAI/provider behavior is controlled; API, database and n8n are real |
 | Real OpenAI, Gmail and Slack | Not run | No live quality, OAuth, inbox delivery, Slack operation or provider cost claim |
 
@@ -95,8 +105,11 @@ The runner starts a disposable PID-named Docker project with fake credentials, i
 
 The complete trace is: authenticated intake, persisted job, real n8n retrieval/draft save, reviewer revision and version-bound approval, immutable dispatch, then inspection of the received Mailpit content and audit history. Negative cases and recovery run against the same real services.
 
-The [README screenshot](screenshots/review-workspace.png) is an actual application capture of fictional local sample data. It is not represented as a screenshot of an as-yet-unverified public deployment.
+The [README screenshot](screenshots/review-workspace.png) is an actual application capture of fictional local sample data. The public-run evidence artifact separately retains its browser report and captured screenshots.
 
 [quality-ci]: https://github.com/mithundas79/support-flow/actions/runs/39957927244/job/120428315357
 [integration-ci]: https://github.com/mithundas79/support-flow/actions/runs/39957927244/job/120428314796
 [artifact-ci]: https://github.com/mithundas79/support-flow/actions/runs/39957927244/job/120429918021
+[export-ci]: https://github.com/mithundas79/support-flow/actions/runs/39958581024/job/120430507430
+[pages-ci]: https://github.com/mithundas79/mithundas79.github.io/actions/runs/39959294793
+[public-ci]: https://github.com/mithundas79/support-flow/actions/runs/39959667796/job/120434182139

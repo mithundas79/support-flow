@@ -2,15 +2,17 @@
 
 A human-reviewed support inbox for a fictional SaaS company. n8n classifies tickets, retrieves PostgreSQL/pgvector knowledge, and prepares an OpenAI draft. A React workspace lets a reviewer inspect sources, revise the reply, and approve a specific version before an immutable outbox can dispatch it.
 
-**Two ways to explore:** [Try the demo](#try-the-demo) uses prepared fictional conversations in your browser. [Run the boilerplate](#run-the-boilerplate) starts the actual API, database, n8n workflows and local email sink.
+**Two ways to explore:** [Try the live demo](https://mithundas79.github.io/support-flow/) uses prepared fictional conversations in your browser. [Run the boilerplate](#run-the-boilerplate) starts the actual API, database, n8n workflows and local email sink.
 
-**Verification status:** the selected main revision passes Node 22 installation, build/typecheck, sample browser checks and the real PostgreSQL/n8n/API/Mailpit fixture stack in CI. Published-demo verification is pending. See [the exact results and provenance](docs/validation.md). No live OpenAI, Gmail or Slack execution is claimed.
+**Verified:** the published files match the exact CI artifact, and all 14 public desktop/mobile browser checks pass. The selected main revision also passes Node 22 installation, build/typecheck and the real PostgreSQL/n8n/API/Mailpit fixture stack. See [the exact results and provenance](docs/validation.md). No live OpenAI, Gmail or Slack execution is claimed.
 
 ![Actual local review workspace showing a fictional ticket, source excerpt and prepared draft](docs/screenshots/review-workspace.png)
 
 ## Try the demo
 
-The public demo is awaiting final release verification. You can already explore the browser-only sample locally with Node.js **22 LTS** and npm **11.21.1**:
+Open the [interactive demo](https://mithundas79.github.io/support-flow/) with no setup. The messages, sources and drafts are fictional; decisions stay in your browser and no email is sent.
+
+To preview the same sample locally, use Node.js **22 LTS** and npm **11.21.1**:
 
 ```sh
 git clone https://github.com/mithundas79/support-flow.git
