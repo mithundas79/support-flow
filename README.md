@@ -10,11 +10,12 @@ A human-reviewed support inbox for a fictional SaaS company. n8n classifies tick
 
 ## Try the demo
 
-Public GitHub Pages publication has not yet been verified. Run the same sample locally with Node.js **22 LTS** and npm 10:
+Public GitHub Pages publication has not yet been verified. Run the same sample locally with Node.js **22 LTS** and npm **11.21.1**:
 
 ```sh
 git clone https://github.com/mithundas79/support-flow.git
 cd support-flow
+npm install --global npm@11.21.1 --ignore-scripts --audit=false --fund=false
 npm ci
 npm run build
 npm run preview --workspace @support-flow/web -- --host 127.0.0.1 --port 4173
@@ -31,11 +32,11 @@ The sample uses prepared synthetic messages, article matches and drafts. **It ma
 
 ## Run the boilerplate
 
-This is a local, single-reviewer reference implementation. Prerequisites: Git, Node.js 22 LTS, npm 10, Docker with Compose v2, and a running Linux-container engine. The default stack uses **controlled OpenAI fixtures and Mailpit**. No OpenAI, Gmail or Slack account is needed to exercise it.
+This is a local, single-reviewer reference implementation. Prerequisites: Git, Node.js 22 LTS, npm 11.21.1, Docker with Compose v2, and a running Linux-container engine. The default stack uses **controlled OpenAI fixtures and Mailpit**. No OpenAI, Gmail or Slack account is needed to exercise it.
 
 ### 1. Install and configure
 
-After cloning, run `npm ci` and `npm run build`. The build prepares the shared contract/core packages for the host web server as well as the application artifacts. Copy `.env.example` to `.env`, then replace its local password and token placeholders. Keep `.env` out of Git. Use distinct random values for `REVIEWER_TOKEN`, `WORKFLOW_TOKEN` and `N8N_ENCRYPTION_KEY`; reviewer and workflow tokens must differ and contain at least 24 characters.
+After cloning, select the declared installer with `npm install --global npm@11.21.1 --ignore-scripts --audit=false --fund=false`, then run `npm ci` and `npm run build`. The build prepares the shared contract/core packages for the host web server as well as the application artifacts. Copy `.env.example` to `.env`, then replace its local password and token placeholders. Keep `.env` out of Git. Use distinct random values for `REVIEWER_TOKEN`, `WORKFLOW_TOKEN` and `N8N_ENCRYPTION_KEY`; reviewer and workflow tokens must differ and contain at least 24 characters.
 
 | Setting | Local use |
 | --- | --- |

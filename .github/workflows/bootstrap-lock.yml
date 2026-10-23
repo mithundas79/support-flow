@@ -22,6 +22,8 @@ jobs:
       - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
         with:
           node-version: '22'
+      - name: Use the declared npm installer
+        run: npm install --global npm@11.21.1 --ignore-scripts --audit=false --fund=false
       - name: Generate real npm metadata and integrity lock
         run: |
           node --input-type=module -e "import { rmSync } from 'node:fs'; rmSync('package-lock.json', { force: true });"
@@ -37,7 +39,7 @@ jobs:
           const files = readdirSync(directory).filter(name => name.endsWith('-debug-0.log'))
             .map(name => join(directory, name)).sort((a, b) => statSync(b).mtimeMs - statSync(a).mtimeMs);
           if (files[0]) console.log(readFileSync(files[0], 'utf8').split('\n')
-            .filter(line => /verbose stack|silly placeDep|error /.test(line)).slice(-60).join('\n'));
+            .filter(line => /verbose stack|silly placeDep|silly fetch manifest|error /.test(line)).slice(-100).join('\n'));
           NODE
       - name: Preserve generated lock for an explicit reviewed commit
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4

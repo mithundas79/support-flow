@@ -27,6 +27,8 @@ jobs:
         with:
           node-version: '22'
           cache: npm
+      - name: Use the declared npm installer
+        run: npm install --global npm@11.21.1 --ignore-scripts --audit=false --fund=false
       - run: npm ci
       - name: Record full dependency advisory evidence
         shell: bash
@@ -85,6 +87,8 @@ jobs:
         with:
           node-version: '22'
           cache: npm
+      - name: Use the declared npm installer
+        run: npm install --global npm@11.21.1 --ignore-scripts --audit=false --fund=false
       - run: npm ci
       - run: npm run build
       - run: npx playwright install --with-deps chromium

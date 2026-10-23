@@ -3,7 +3,8 @@ WORKDIR /app
 COPY package*.json tsconfig.base.json ./
 COPY packages ./packages
 COPY apps ./apps
-RUN npm ci --ignore-scripts \
+RUN npm install --global npm@11.21.1 --ignore-scripts --audit=false --fund=false \
+    && npm ci --ignore-scripts \
     && npm run build --workspace @support-flow/contracts \
     && npm run build --workspace @support-flow/core \
     && npm run build --workspace @support-flow/api \
